@@ -1,0 +1,10 @@
+# ข้อมูลลับ / config
+.env
+
+# โฟลเดอร์ Node.js
+node_modules/
+
+
+vote.sql# โฟลเดอร์ที่สร้างขึ้นโดยระบบ
+dist/
+build/
