@@ -1,0 +1,13 @@
+touch .gitignore
+# 🔒 Ignore environment config
+.env
+
+# 🧹 Node dependencies
+node_modules/
+
+# 📦 Build output
+dist/
+build/
+
+# 🐞 Debug log
+npm-debug.log
