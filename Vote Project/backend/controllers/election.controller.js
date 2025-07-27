@@ -23,33 +23,81 @@ exports.getAllElections = (req, res) => {
     });
 };
 // SELECT * FROM elections WHERE election_id = ?
+
+// SELECT *,
+//     status AS original_status,
+//     CASE
+//     WHEN NOW() < registration_start THEN 'before_registration'
+//     WHEN NOW() BETWEEN registration_start AND registration_end THEN 'registration'
+//     WHEN NOW() BETWEEN start_date AND end_date THEN 'active'
+//     WHEN NOW() > end_date THEN 'completed'
+//     ELSE 'unknown'
+//     END AS computed_status
+//     FROM Elections
+//     WHERE election_id = ?
+
 exports.getElectionById = (req, res) => {
     const electionId = req.params.id;
     const sql = `
-    SELECT *,
-    status AS original_status,
-    CASE
-    WHEN NOW() < registration_start THEN 'before_registration'
-    WHEN NOW() BETWEEN registration_start AND registration_end THEN 'registration'
-    WHEN NOW() BETWEEN start_date AND end_date THEN 'active'
-    WHEN NOW() > end_date THEN 'completed'
-    ELSE 'unknown'
-    END AS computed_status
-    FROM Elections
-    WHERE election_id = ?
+        SELECT 
+            election_id, election_name, description,
+            registration_start, registration_end,
+            start_date, end_date,
+            image_path AS image_url, -- ✅ alias สำคัญ
+            status AS original_status,
+            CASE
+                WHEN NOW() < registration_start THEN 'before_registration'
+                WHEN NOW() BETWEEN registration_start AND registration_end THEN 'registration'
+                WHEN NOW() BETWEEN start_date AND end_date THEN 'active'
+                WHEN NOW() > end_date THEN 'completed'
+                ELSE 'unknown'
+            END AS computed_status
+        FROM Elections
+        WHERE election_id = ?
     `;
+
     db.query(sql, [electionId], (err, results) => {
         if (err) return res.status(500).json({ success: false });
         if (!results.length) return res.status(404).json({ success: false, message: 'Election not found' });
+
         res.json({ success: true, election: results[0] });
     });
 
-    const election = results[0];
-    res.json({
-        ...election,
-        image_url: election.image_url // ✅ ต้องมี field นี้
-    });
+    // db.query("SELECT * FROM Elections WHERE election_id = ?", [electionId], (err2, updated) => {
+    //     if (err2) return res.status(500).json({ success: false, message: "Fetch updated failed" });
+    //     res.json({ success: true, updatedElection: updated[0] });
+    // });
+
 };
+
+
+// exports.getElectionById = (req, res) => { // ก่อนหน้า
+//     const electionId = req.params.id;
+//     const sql = `
+//     SELECT *,  image_path AS image_url,
+//     status AS original_status,
+//     CASE
+//     WHEN NOW() < registration_start THEN 'before_registration'
+//     WHEN NOW() BETWEEN registration_start AND registration_end THEN 'registration'
+//     WHEN NOW() BETWEEN start_date AND end_date THEN 'active'
+//     WHEN NOW() > end_date THEN 'completed'
+//     ELSE 'unknown'
+//     END AS computed_status
+//     FROM Elections
+//     WHERE election_id = ?
+//     `;
+//     db.query(sql, [electionId], (err, results) => {
+//         if (err) return res.status(500).json({ success: false });
+//         if (!results.length) return res.status(404).json({ success: false, message: 'Election not found' });
+//         res.json({ success: true, election: results[0] });
+//     });
+//     const election = results[0];
+
+//     res.json({
+//         ...election,
+//         image_url: election.image_path || null 
+//     });
+// };
 
 // กำหนด path และชื่อไฟล์รูป
 const storage = multer.diskStorage({
@@ -62,6 +110,43 @@ const upload = multer({ storage });
 exports.uploadElectionImage = upload.single('image');
 
 // อัปเดตข้อมูล
+// exports.updateElectionWithImage = (req, res) => {
+//     console.log("📥 PUT /api/elections/:id");
+//     console.log("🔸 req.body:", req.body);
+//     console.log("🔹 req.file:", req.file);
+
+//     const electionId = req.params.id;
+//     const {
+//         election_name,
+//         description,
+//         registration_start,
+//         registration_end,
+//         start_date,
+//         end_date
+//     } = req.body;
+
+//     const image_url = req.file ? `/uploads/elections/${req.file.filename}` : null;
+
+//     const sql = `
+//     UPDATE Elections
+//     SET election_name = ?, description = ?, registration_start = ?, registration_end = ?,
+//         start_date = ?, end_date = ?
+//         ${image_url ? ', image_url = ?' : ''}
+//     WHERE election_id = ?
+//     `;
+
+//     const params = image_url
+//         ? [election_name, description, registration_start, registration_end, start_date, end_date, image_url, electionId]
+//         : [election_name, description, registration_start, registration_end, start_date, end_date, electionId];
+
+//     db.query(sql, params, (err) => {
+//         if (err) return res.status(500).json({ success: false, error: err });
+//         res.json({ success: true, message: "Election updated successfully" });
+//     });
+// };
+
+
+
 exports.updateElectionWithImage = (req, res) => {
     const electionId = req.params.id;
     const {
@@ -73,25 +158,42 @@ exports.updateElectionWithImage = (req, res) => {
         end_date
     } = req.body;
 
-    const image_url = req.file ? `/uploads/elections/${req.file.filename}` : null;
+    console.log("📥 PUT เรียกแล้ว");
+    console.log("🔸 req.body:", req.body);
+    console.log("🔹 req.file:", req.file);
 
-    const sql = `
+    let sql = `
     UPDATE Elections
     SET election_name = ?, description = ?, registration_start = ?, registration_end = ?,
         start_date = ?, end_date = ?
-        ${image_url ? ', image_url = ?' : ''}
-    WHERE election_id = ?
     `;
+    const params = [election_name, description, registration_start, registration_end, start_date, end_date];
 
-    const params = image_url
-        ? [election_name, description, registration_start, registration_end, start_date, end_date, image_url, electionId]
-        : [election_name, description, registration_start, registration_end, start_date, end_date, electionId];
+    if (req.file) {
+        const image_path = `/uploads/elections/${req.file.filename}`;
+        sql += `, image_path  = ?`;
+        params.push(image_path);
+    }
+
+    sql += ` WHERE election_id = ?`;
+    params.push(electionId);
 
     db.query(sql, params, (err) => {
-        if (err) return res.status(500).json({ success: false, error: err });
-        res.json({ success: true, message: "Election updated successfully" });
+        if (err) {
+            console.error("❌ SQL ERROR:", err);
+            return res.status(500).json({ success: false, message: "SQL Error", error: err });
+        }
+
+        res.json({ success: true, message: "Election updated" });
     });
 };
+
+
+
+
+
+
+
 
 // exports.updateElectionWithImage = async (req, res) => {
 //     try {

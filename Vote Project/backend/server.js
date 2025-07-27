@@ -10,6 +10,7 @@ const db = require('./models/db');
 
 // ✅ DEBUG log ตรวจว่า server เริ่มแล้ว
 console.log("✅ SERVER STARTED @", new Date().toLocaleString());
+
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // -------------------- CORS --------------------

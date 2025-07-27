@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 export default function EditElectionModal({ election, onClose, onSave }) {
   const [form, setForm] = useState({
@@ -11,7 +12,7 @@ export default function EditElectionModal({ election, onClose, onSave }) {
   });
   const [imageFile, setImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-  
+
   const [preview, setPreview] = useState(null);
 
   const [electionToEdit, setElectionToEdit] = useState(null);
@@ -35,26 +36,49 @@ export default function EditElectionModal({ election, onClose, onSave }) {
   //   }
   // }, [election]);
 
-  useEffect(() => {
-  if (election) {
-    setForm({
-      election_name: election.election_name || "",
-      description: election.description || "",
-      registration_start: election.registration_start?.slice(0, 16) || "",
-      registration_end: election.registration_end?.slice(0, 16) || "",
-      start_date: election.start_date?.slice(0, 16) || "",
-      end_date: election.end_date?.slice(0, 16) || "",
-      image: null
-    });
+  // useEffect(() => {
+  //   if (election) {
+  //     setForm({
+  //       election_name: election.election_name || "",
+  //       description: election.description || "",
+  //       registration_start: election.registration_start?.slice(0, 16) || "",
+  //       registration_end: election.registration_end?.slice(0, 16) || "",
+  //       start_date: election.start_date?.slice(0, 16) || "",
+  //       end_date: election.end_date?.slice(0, 16) || "",
+  //       image_url: election.image_url || ""
+  //     });
 
-    // ✅ ตั้งค่ารูป preview ถ้ามี image_url
-    if (election.image_url) {
-      const fullUrl = `http://localhost:5000${election.image_url}`;
-      console.log("📸 ตั้ง preview จาก image_url:", fullUrl);
-      setPreview(fullUrl);
+  //     // ✅ ตั้งค่ารูป preview ถ้ามี image_url
+  //     if (election.image_url) {
+  //       const fullUrl = `http://localhost:5000${election.image_url}`;
+  //       console.log("📸 ตั้ง preview จาก image_url:", fullUrl);
+  //       setPreview(fullUrl);
+  //     }
+  //   }
+  // }, [election]);
+
+  useEffect(() => {
+    if (election) {
+      setForm({
+        election_name: election.election_name || "",
+        description: election.description || "",
+        registration_start: election.registration_start?.slice(0, 16) || "",
+        registration_end: election.registration_end?.slice(0, 16) || "",
+        start_date: election.start_date?.slice(0, 16) || "",
+        end_date: election.end_date?.slice(0, 16) || "",
+        image_url: election.image_url || election.image_path || "" // ✅ แก้ตรงนี้
+      });
+
+      const image = election.image_url || election.image_path;
+      if (image) {
+        const fullUrl = `http://localhost:5000${image}`;
+        setPreview(fullUrl);
+        console.log("📸 ตั้ง preview จาก:", fullUrl);
+      }
     }
-  }
-}, [election]);
+  }, [election]);
+  console.log("🧪 Props ที่ได้รับ:", { election, onClose, onSave });
+
 
   console.log("🖼️ image_url ที่ได้จาก backend:", election?.image_url);
   console.log("📸 preview ที่ตั้งค่า:", preview);
@@ -67,61 +91,118 @@ export default function EditElectionModal({ election, onClose, onSave }) {
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-    setForm(prev => ({ ...prev, image: file }));
+    setImageFile(file);
+
     if (file) {
       setPreview(URL.createObjectURL(file));
     }
   };
 
-  // const handleSubmit = (e) => {
+
+  // const handleSubmit = async (e) => {
   //   e.preventDefault();
   //   const formData = new FormData();
-  //   for (const key in form) {
-  //     formData.append(key, form[key]);
-  //   }
+
+  //   formData.append("election_name", form.election_name);
+  //   formData.append("description", form.description);
+  //   formData.append("registration_start", form.registration_start);
+  //   formData.append("registration_end", form.registration_end);
+  //   formData.append("start_date", form.start_date);
+  //   formData.append("end_date", form.end_date);
+
   //   if (imageFile) {
   //     formData.append("image", imageFile);
   //   }
-  //   onSave(formData);
+
+  //   const token = localStorage.getItem("token");
+
+  //   const res = await fetch(`http://localhost:5000/api/elections/${election.election_id}`, {
+  //     method: "PUT",
+  //     headers: {
+  //       Authorization: `Bearer ${token}`,
+  //     },
+  //     body: formData,
+  //   });
+
+  //   // ✅ Validate วันที่ก่อนส่ง
+  //   const startReg = new Date(form.registration_start);
+  //   const endReg = new Date(form.registration_end);
+  //   const startVote = new Date(form.start_date);
+  //   const endVote = new Date(form.end_date);
+
+  //   if (startReg >= endReg) {
+  //     toast.error("วันเริ่มรับสมัครต้องมาก่อนวันสิ้นสุดรับสมัคร");
+  //     return;
+  //   }
+  //   if (startVote >= endVote) {
+  //     toast.error("วันเริ่มลงคะแนนต้องมาก่อนวันสิ้นสุดลงคะแนน");
+  //     return;
+  //   }
+
+  //   const data = await res.json();
+  //   if (data.success) {
+  //     // toast.success("อัปเดตสำเร็จ"); // หรือ alert ก็ได้
+  //     alert("อัปเดตสำเร็จ");
+  //     await onSave(formData);          // ✅ รอให้ parent fetch เสร็จ
+  //     onClose();
+
+  //   } else {
+  //     alert("เกิดข้อผิดพลาด: " + data.message || "ไม่สามารถอัปเดตได้");
+  //   }
   // };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const formData = new FormData();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    formData.append("election_name", form.election_name);
-    formData.append("description", form.description);
-    formData.append("registration_start", form.registration_start);
-    formData.append("registration_end", form.registration_end);
-    formData.append("start_date", form.start_date);
-    formData.append("end_date", form.end_date);
+  // ✅ Validate วันที่ก่อนส่ง (ควรอยู่ในนี้เท่านั้น!)
+  const startReg = new Date(form.registration_start);
+  const endReg = new Date(form.registration_end);
+  const startVote = new Date(form.start_date);
+  const endVote = new Date(form.end_date);
 
-    if (imageFile) {
-      formData.append("image", imageFile);
-    }
+  if (startReg >= endReg) {
+    toast.error("วันเริ่มรับสมัครต้องมาก่อนวันสิ้นสุดรับสมัคร");
+    return;
+  }
+  if (startVote >= endVote) {
+    toast.error("วันเริ่มลงคะแนนต้องมาก่อนวันสิ้นสุดลงคะแนน");
+    return;
+  }
 
-    const token = localStorage.getItem("token");
+  const formData = new FormData();
+  formData.append("election_name", form.election_name);
+  formData.append("description", form.description);
+  formData.append("registration_start", form.registration_start);
+  formData.append("registration_end", form.registration_end);
+  formData.append("start_date", form.start_date);
+  formData.append("end_date", form.end_date);
 
-    const res = await fetch(`http://localhost:5000/api/elections/${election.election_id}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
+  if (imageFile) {
+    formData.append("image", imageFile);
+  }
 
-    const data = await res.json();
-    if (data.success) {
-      alert("อัปเดตสำเร็จ");
-      
-      onClose();
+  const token = localStorage.getItem("token");
+  const res = await fetch(`http://localhost:5000/api/elections/${election.election_id}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
 
-    } else {
-      alert("เกิดข้อผิดพลาด: " + data.message || "ไม่สามารถอัปเดตได้");
-    }
-  };
+  const data = await res.json();
+  if (data.success) {
+    toast.success("อัปเดตสำเร็จ");
+    await onSave(formData);
+    onClose();
+  } else {
+    alert("เกิดข้อผิดพลาด: " + (data.message || "ไม่สามารถอัปเดตได้"));
+  }
+};
 
-
+if (!election || !onClose || !onSave) {
+  return <div className="text-red-500 p-4">มีข้อมูลไม่ครบ (election / onClose / onSave)</div>;
+}
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -201,40 +282,38 @@ export default function EditElectionModal({ election, onClose, onSave }) {
             </div>
           </div>
 
-          <div>
-            {form.image_url && (
-              <div className="mb-2">
-                <img
-                  src={`http://localhost:5000/uploads/${form.image_url}`}
-                  alt="ภาพประกอบ"
-                  className="max-h-48 rounded shadow border border-gray-300"
-                />
-              </div>
-            )}
-            <label className="block text-sm font-medium text-gray-700 mb-1">รูปภาพประกอบ</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="w-full border border-purple-300 p-2 rounded bg-white"
-            />
-            {/* {previewUrl && (
+          <label className="block text-sm font-medium text-gray-700 mb-1">รูปภาพประกอบ</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="w-full border border-purple-300 p-2 rounded bg-white"
+          />
+          {/* {previewUrl && (
               <img src={previewUrl} alt="preview" className="w-32 mt-2 rounded shadow" />
             )} */}
 
-            {/* {previewUrl && (
+          {/* {previewUrl && (
               <img src={previewUrl} alt="Preview" className="w-32 h-auto mt-2 border rounded" />
             )} */}
 
-        
 
-          </div>
+          {!preview && form.image_url && (
+            <div className="mb-2">
+              <img
+                src={`http://localhost:5000${form.image_url}`}
+                alt="ภาพเก่า"
+                className="h-40 object-contain mx-auto rounded shadow"
+              />
+            </div>
+          )}
 
-              {preview && (
-              <div className="mb-2">
-                <img src={preview} alt="preview" className="h-40 object-contain mx-auto rounded shadow" />
-              </div>
-            )}
+
+          {preview && (
+            <div className="mb-2">
+              <img src={preview} alt="preview" className="h-40 object-contain mx-auto rounded shadow" />
+            </div>
+          )}
 
 
           <div className="flex justify-center gap-4 mt-4">

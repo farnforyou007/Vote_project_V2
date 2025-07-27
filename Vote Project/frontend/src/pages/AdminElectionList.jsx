@@ -53,34 +53,60 @@ export default function AdminElectionList() {
 
 
 
+    // const handleSave = async (formData) => {
+    //     const token = localStorage.getItem("token");
+
+    //     const res = await fetch(`http://localhost:5000/api/elections/${electionToEdit.election_id}`, {
+    //         method: "PUT",
+    //         headers: { Authorization: `Bearer ${token}` },
+    //         body: formData, // ✅ ต้องไม่ใส่ Content-Type เอง
+    //     });
+
+    //     const data = await res.json();
+    //     if (data.success) {
+    //         setElections(prev =>
+    //             prev.map(e =>
+    //                 e.election_id === electionToEdit.election_id
+    //                     ? { ...e, ...data.updatedElection } // ✅ หรือ merge formData ถ้า backend ไม่ส่งกลับ
+    //                     : e
+    //             )
+    //         );
+    //         setShowEditModal(false);
+    //     } else {
+    //         alert("อัปเดตไม่สำเร็จ");
+    //     }
+    // };
+
     const handleSave = async (formData) => {
         const token = localStorage.getItem("token");
 
         const res = await fetch(`http://localhost:5000/api/elections/${electionToEdit.election_id}`, {
             method: "PUT",
             headers: { Authorization: `Bearer ${token}` },
-            body: formData, // ✅ ต้องไม่ใส่ Content-Type เอง
+            body: formData,
         });
 
         const data = await res.json();
         if (data.success) {
-            alert("อัปเดตสำเร็จ");
-            fetchElections();
-            setShowEditModal(false);
-            
+            // alert("อัปเดตสำเร็จ");
 
+            // ✅ โหลดข้อมูลใหม่หลังอัปเดต
+            await fetchElections();
+
+            setShowEditModal(false); // ✅ ปิด modal ทีหลัง
         } else {
             alert("อัปเดตไม่สำเร็จ");
         }
     };
 
-    
+
+
 
     const handleEdit = (election) => {
         setElectionToEdit(election);
-        fetchElections();
+        // fetchElections();
         setShowEditModal(true);
-    
+
     };
     // const handleDelete = async (id) => {
     //     if (!window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?")) return;
