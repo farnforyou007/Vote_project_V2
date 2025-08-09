@@ -1,21 +1,122 @@
-import { useState } from "react";
-import logo from "../assets/logo.jfif";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import logo from "../assets/logo.png";
+import { FaAddressCard } from "react-icons/fa";
+import { MdHowToVote } from "react-icons/md";
+import { IoHomeSharp } from "react-icons/io5";
+import { IoLogOut, IoLogIn } from "react-icons/io5";
+import { FaClipboardCheck } from "react-icons/fa";
+import { FaEye } from "react-icons/fa";
+import { apiFetch } from "../utils/apiFetch";
 
 export default function Header({ studentName }) {
     const [menuOpen, setMenuOpen] = useState(false);
-    const roles = JSON.parse(localStorage.getItem("userRoles") || "[]");
-    
-    const handleLogout = () => {
-        // ลบข้อมูลทั้งหมด
-        localStorage.clear();
-        // หรือแค่ลบเฉพาะ key
-        // localStorage.removeItem("studentName");
-        // localStorage.removeItem("userRoles");
+    const isLoggedIn = !!studentName;
+    const location = useLocation();
+    const isLoginPage = location.pathname === "/login";
+    const [hasApplied, setHasApplied] = useState(false);
 
-        // ไปหน้า Login
+    const roles = JSON.parse(localStorage.getItem("userRoles") || "[]");
+    const [selectedRole, setSelectedRole] = useState(() => {
+        return localStorage.getItem("selectedRole") || "";
+    });
+
+
+    useEffect(() => {
+        const roleInStorage = localStorage.getItem("selectedRole");
+        if (!roleInStorage && roles.length > 0) {
+            // ถ้ายังไม่มี selectedRole ให้ตั้งค่าตัวแรกใน roles
+            localStorage.setItem("selectedRole", roles[0]);
+            setSelectedRole(roles[0]);
+        } else {
+            setSelectedRole(roleInStorage || "");
+        }
+        const updateRole = () => {
+            const role = localStorage.getItem("selectedRole") || "";
+            setSelectedRole(role);
+        };
+
+        window.addEventListener("role-changed", updateRole);
+
+        // initial load
+        updateRole();
+
+        return () => {
+            window.removeEventListener("role-changed", updateRole);
+        };
+    }, []);
+
+
+    // useEffect(() => {
+    //     if (selectedRole === "นักศึกษา") {
+    //         fetch("/api/applications/check", {
+    //             headers: {
+    //                 Authorization: `Bearer ${localStorage.getItem("token")}`
+    //             }
+    //         })
+    //             .then(res => res.json())
+    //             .then(data => {
+    //                 setHasApplied(data.hasApplied);
+    //             })
+    //             .catch(err => {
+    //                 console.error("❌ ตรวจสอบใบสมัครผิดพลาด:", err);
+    //             });
+    //     }
+    // }, [selectedRole]);
+
+    // useEffect(() => {
+    //     const checkApplicationStatus = async () => {
+    //         if (selectedRole === "นักศึกษา") {
+    //             const data = await apiFetch("/api/applications/check", {
+    //                 headers: {
+    //                     Authorization: `Bearer ${localStorage.getItem("token")}`
+    //                 }
+    //             });
+    //             if (!data) return; // popup + redirect ถ้า token หมดอายุ
+    //             setHasApplied(data.hasApplied);
+    //         }
+    //     };
+    //     checkApplicationStatus();
+    // }, [selectedRole]);
+
+    useEffect(() => {
+        const checkApplicationStatus = async () => {
+            const token = localStorage.getItem("token");
+            if (!token || selectedRole !== "นักศึกษา") return; // เพิ่มเช็ค token
+            const data = await apiFetch("/api/applications/check", {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            if (!data) return;
+            setHasApplied(data.hasApplied);
+        };
+        checkApplicationStatus();
+    }, [selectedRole]);
+
+
+
+    const handleLogout = () => {
+        localStorage.clear();
         window.location.href = "/";
     };
+    // useEffect(() => {
+    //     const role = localStorage.getItem("selectedRole") || "";
+    //     setSelectedRole(role);
+    // }, []);
 
+    console.log("role : ", selectedRole);
+    const MenuItem = ({ href, icon, label }) => (
+        <li>
+            <a
+                href={href}
+                className="flex items-center gap-2 p-2 rounded-md bg-white hover:bg-purple-200 transition-colors"
+            >
+                <span className="text-purple-600">{icon}</span>
+                <span className="text-gray-800">{label}</span>
+            </a>
+        </li>
+    );
 
     return (
         <>
@@ -24,29 +125,29 @@ export default function Header({ studentName }) {
                 {/* ซ้าย */}
                 <div className="flex items-center space-x-1">
                     <button
-                        className="text-2xl focus:outline-none"
+                        className="text-2xl text-black focus:outline-none"
                         onClick={() => setMenuOpen(true)}
                     >
                         &#9776;
                     </button>
-                    <img src={logo} alt="Logo" className="w-8 h-8" />
+                    <img src={logo} alt="Logo" className="w-10 h-10" />
                 </div>
 
                 {/* กลาง */}
                 <div className="flex-1 flex justify-center px-2">
-                    <span className="font-semibold text-sm md:text-base text-center truncate max-w-[200px] md:max-w-none">
+                    <span className="font-semibold text-sm md:text-base text-center truncate max-w-[200px] md:max-w-none text-black">
                         ระบบการเลือกตั้งออนไลน์ วิทยาลัยอาชีวศึกษายะลา
                     </span>
                 </div>
 
                 {/* ขวา */}
                 <div className="flex items-center space-x-1">
-                    <span className="text-sm md:text-base truncate max-w-[80px] md:max-w-none">
+                    <span className="text-sm md:text-base truncate max-w-[80px] md:max-w-none text-black">
                         {studentName || "ผู้ใช้งาน"}
                     </span>
-                    <div className="w-7 h-7 rounded-full bg-gray-300 flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center">
                         <svg
-                            className="w-4 h-4 text-gray-600"
+                            className="w-4 h-4 text-purple-600"
                             fill="currentColor"
                             viewBox="0 0 24 24"
                         >
@@ -60,93 +161,151 @@ export default function Header({ studentName }) {
                 </div>
             </header>
 
-            {menuOpen && (
-                <>
-                    <aside
-                        className={`fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50 transform transition-transform duration-300`}
-                    >
-                        <div className="p-4 flex justify-between items-center border-b">
-                            <span className="font-semibold">เมนู</span>
-                            <button
-                                onClick={() => setMenuOpen(false)}
-                                className="text-2xl"
-                            >
-                                ✕
-                            </button>
-                        </div>
-                        <ul className="p-4 space-y-2">
-                            {/* เมนูที่ทุกคนเห็น */}
-                            <li>
-                                <a href="/elections" className="block text-blue-500 hover:underline">
-                                    หน้าหลัก
-                                </a>
-                            </li>
+            {/* Overlay */}
+            <div
+                className={`fixed inset-0 z-40 transition-opacity ${menuOpen ? "opacity-100 visible" : "opacity-0 invisible"
+                    }`}
+                onClick={() => setMenuOpen(false)}
+            >
+                <div className="absolute inset-0 bg-black bg-opacity-40" />
+            </div>
 
-                            <li>
-                                <a href="/login" className="block text-blue-500 hover:underline">
-                                    เข้าสู่ระบบ
-                                </a>
-                            </li>
-
-
-                            {/* เมนูนักศึกษา */}
-                            {roles.includes("นักศึกษา") && (
-                                <>
-                                    <li>
-                                        <a href="/my-votes" className="block text-blue-500 hover:underline">
-                                            การโหวตของฉัน
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="/apply-candidate" className="block text-blue-500 hover:underline">
-                                            สมัครเป็นผู้สมัคร
-                                        </a>
-                                    </li>
-                                </>
-                            )}
-
-                            {/* เมนูกรรมการ */}
-                            {roles.includes("กรรมการ") && (
-                                <li>
-                                    <a href="/review-applications" className="block text-blue-500 hover:underline">
-                                        ตรวจสอบใบสมัคร
-                                    </a>
-                                </li>
-                            )}
-
-                            {/* เมนูผู้ดูแล */}
-                            {roles.includes("ผู้ดูแล") && (
-                                <>
-                                    <li>
-                                        <a href="/admin/manage-users" className="block text-blue-500 hover:underline">
-                                            จัดการผู้ใช้
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="/admin/elections" className="block text-blue-500 hover:underline">
-                                            จัดการการเลือกตั้ง
-                                        </a>
-                                    </li>
-                                </>
-                            )}
-
-                            <li>
-                                <button
-                                    onClick={handleLogout}
-                                    className="w-full text-left text-red-500 hover:underline"
-                                >
-                                    ออกจากระบบ
-                                </button>
-                            </li>
-                        </ul>
-                    </aside>
-                    <div
-                        className="fixed inset-0 bg-black bg-opacity-40 z-40"
+            {/* Sidebar slide-in */}
+            <aside
+                className={`fixed top-0 left-0 h-full w-64 bg-purple-100 shadow-lg z-50 transform transition-transform duration-300 ${menuOpen ? "translate-x-0" : "-translate-x-full"
+                    }`}
+            >
+                <div className="p-4 flex justify-between items-center border-b border-purple-200 bg-purple-300">
+                    <span className="font-semibold text-black">เมนู</span>
+                    <button
                         onClick={() => setMenuOpen(false)}
-                    />
-                </>
-            )}
+                        className="text-2xl text-black"
+                    >
+                        ✕
+                    </button>
+                </div>
+                <ul className="p-4 space-y-2">
+                    <MenuItem href="/elections" label="หน้าหลัก" icon={<IoHomeSharp className="text-xl text-purple-700" />} />
+
+                    {!studentName && (
+                        <MenuItem
+                            href="/login"
+                            label="เข้าสู่ระบบ"
+                            icon={<IoLogIn className="text-lg text-emerald-500" size={22} />}
+                        />
+                    )}
+
+                    {/* {!studentName && <MenuItem href="/login" />} */}
+
+                    {selectedRole === "นักศึกษา" && (
+                        <>
+                            <MenuItem
+                                href="/my-votes"
+                                label="ประวัติการใช้สิทธิ์"
+                                icon={<MdHowToVote className="text-2xl text-purple-700" />}
+                            />
+                            <MenuItem
+                                href="/profile"
+                                icon={<FaAddressCard className="text-xl text-purple-700" />}
+                                label="ประวัติส่วนตัว"
+
+                            />
+                            <MenuItem
+                                href="/check-eligibility"
+                                label="ตรวจสอบสิทธิ์"
+                                icon={<FaClipboardCheck className="text-xl text-purple-700" />}
+                            />
+                            {hasApplied && (
+                                <MenuItem
+                                    // href="/application-status"
+                                    href="/applicationPage"
+
+                                    label="ตรวจสอบใบสมัคร"
+                                    icon={<FaEye className="text-xl text-purple-700" />}
+                                />
+                            )}
+                        </>
+                    )}
+
+                    {selectedRole === "กรรมการ" && (
+                        <>
+
+                            <MenuItem
+                                href="/profile"
+                                icon={<FaAddressCard className="text-xl text-purple-700" />}
+                                label="ประวัติส่วนตัว"
+
+                            />
+                            <MenuItem
+                                href="/review-applications"
+                                label="จัดการใบสมัคร"
+                                icon={<FaEye className="text-xl text-purple-700" />}
+                            />
+
+                        </>
+
+                    )}
+
+                    {selectedRole === "ผู้สมัคร" && (
+                        <>
+                            <MenuItem
+                                href="/my-votes"
+                                label="ประวัติการใช้สิทธิ์"
+                                icon={<MdHowToVote className="text-2xl text-purple-700" />}
+                            />
+                            <MenuItem
+                                href="/profile"
+                                icon={<FaAddressCard className="text-xl text-purple-700" />}
+                                label="ประวัติส่วนตัว"
+
+                            />
+
+                            <MenuItem
+                                href="/applicationPage"
+                                label="ตรวจสอบใบสมัคร"
+                                icon={<FaEye className="text-xl text-purple-700" />}
+
+                            />
+
+                        </>
+                    )}
+
+
+                    {roles.includes("ผู้ดูแล") && (
+                        <>
+                            <MenuItem
+                                href="/profile"
+                                icon={<FaAddressCard className="text-xl text-purple-700" />}
+                                label="ประวัติส่วนตัว"
+
+                            />
+                            <MenuItem
+                                href="/admin/manage-users"
+                                label="จัดการผู้ใช้"
+                                icon="👤"
+                            />
+                            <MenuItem
+                                href="/admin/elections"
+                                label="จัดการการเลือกตั้ง"
+                                icon="⚙️"
+                            />
+                        </>
+                    )}
+
+                    <li>
+                        {isLoggedIn && !isLoginPage && (
+
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center gap-2 w-full text-left p-2 rounded-md bg-white hover:bg-red-100 transition-colors text-red-600"
+                            >
+                                <span><IoLogOut className="text-xl text-red-700" /></span>
+                                ออกจากระบบ
+                            </button>
+                        )}
+                    </li>
+                </ul>
+            </aside>
         </>
     );
 }
-

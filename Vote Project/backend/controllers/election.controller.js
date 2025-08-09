@@ -39,7 +39,7 @@ exports.getAllElections = (req, res) => {
 exports.getElectionById = (req, res) => {
     const electionId = req.params.id;
     const sql = `
-        SELECT 
+        SELECT
             election_id, election_name, description,
             registration_start, registration_end,
             start_date, end_date,
@@ -70,35 +70,6 @@ exports.getElectionById = (req, res) => {
 
 };
 
-
-// exports.getElectionById = (req, res) => { // ก่อนหน้า
-//     const electionId = req.params.id;
-//     const sql = `
-//     SELECT *,  image_path AS image_url,
-//     status AS original_status,
-//     CASE
-//     WHEN NOW() < registration_start THEN 'before_registration'
-//     WHEN NOW() BETWEEN registration_start AND registration_end THEN 'registration'
-//     WHEN NOW() BETWEEN start_date AND end_date THEN 'active'
-//     WHEN NOW() > end_date THEN 'completed'
-//     ELSE 'unknown'
-//     END AS computed_status
-//     FROM Elections
-//     WHERE election_id = ?
-//     `;
-//     db.query(sql, [electionId], (err, results) => {
-//         if (err) return res.status(500).json({ success: false });
-//         if (!results.length) return res.status(404).json({ success: false, message: 'Election not found' });
-//         res.json({ success: true, election: results[0] });
-//     });
-//     const election = results[0];
-
-//     res.json({
-//         ...election,
-//         image_url: election.image_path || null 
-//     });
-// };
-
 // กำหนด path และชื่อไฟล์รูป
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/elections'),
@@ -109,12 +80,7 @@ const upload = multer({ storage });
 // middleware รองรับ multipart
 exports.uploadElectionImage = upload.single('image');
 
-// อัปเดตข้อมูล
 // exports.updateElectionWithImage = (req, res) => {
-//     console.log("📥 PUT /api/elections/:id");
-//     console.log("🔸 req.body:", req.body);
-//     console.log("🔹 req.file:", req.file);
-
 //     const electionId = req.params.id;
 //     const {
 //         election_name,
@@ -125,30 +91,47 @@ exports.uploadElectionImage = upload.single('image');
 //         end_date
 //     } = req.body;
 
-//     const image_url = req.file ? `/uploads/elections/${req.file.filename}` : null;
+//     console.log("📥 PUT เรียกแล้ว");
+//     console.log("🔸 req.body:", req.body);
+//     console.log("🔹 req.file:", req.file);
 
-//     const sql = `
+//     let sql = `
 //     UPDATE Elections
 //     SET election_name = ?, description = ?, registration_start = ?, registration_end = ?,
 //         start_date = ?, end_date = ?
-//         ${image_url ? ', image_url = ?' : ''}
-//     WHERE election_id = ?
 //     `;
+//     const params = [election_name, description, registration_start, registration_end, start_date, end_date];
 
-//     const params = image_url
-//         ? [election_name, description, registration_start, registration_end, start_date, end_date, image_url, electionId]
-//         : [election_name, description, registration_start, registration_end, start_date, end_date, electionId];
+//     if (req.file) {
+//         const image_path = `/uploads/elections/${req.file.filename}`;
+//         sql += `, image_path  = ?`;
+//         params.push(image_path);
+//     }
+
+//     sql += ` WHERE election_id = ?`;
+//     params.push(electionId);
 
 //     db.query(sql, params, (err) => {
-//         if (err) return res.status(500).json({ success: false, error: err });
-//         res.json({ success: true, message: "Election updated successfully" });
+//         if (err) {
+//             console.error("❌ SQL ERROR:", err);
+//             return res.status(500).json({ success: false, message: "SQL Error", error: err });
+//         }
+
+//         res.json({ success: true, message: "Election updated" });
 //     });
 // };
 
-
-
-exports.updateElectionWithImage = (req, res) => {
+exports.deleteElection = (req, res) => {
     const electionId = req.params.id;
+    const sql = 'DELETE FROM Elections WHERE election_id = ?';
+
+    db.query(sql, [electionId], (err) => {
+        if (err) return res.status(500).json({ success: false, error: err });
+        res.json({ success: true, message: "Election deleted successfully" });
+    });
+}
+
+exports.createElection = (req, res) => {
     const {
         election_name,
         description,
@@ -158,20 +141,73 @@ exports.updateElectionWithImage = (req, res) => {
         end_date
     } = req.body;
 
-    console.log("📥 PUT เรียกแล้ว");
-    console.log("🔸 req.body:", req.body);
-    console.log("🔹 req.file:", req.file);
+    const image_path = req.file ? `/uploads/elections/${req.file.filename}` : null;
+
+    const sql = `
+    INSERT INTO Elections (election_name, description, registration_start, registration_end, start_date, end_date, image_path)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    const params = [election_name, description, registration_start, registration_end, start_date, end_date, image_path];
+    console.log("📨 req.body:", req.body);
+    console.log("🖼️ req.file:", req.file);
+    console.log("🔗 image_path:", image_path);
+    db.query(sql, params, (err) => {
+        if (err) {
+            console.error("❌ SQL ERROR:", err);
+            return res.status(500).json({ success: false, message: "SQL Error", error: err });
+        }
+
+        res.json({ success: true, message: "Election created successfully" });
+    });
+};
+
+// // เพิ่มฟังก์ชันแก้ไขสถานะ
+// exports.updateElectionStatus = (req, res) => {
+//     const { id } = req.params;
+//     const { status } = req.body;
+//     // อนุญาตแค่ค่าสถานะที่ถูกต้อง
+//     const allowed = ['draft', 'registration', 'active', 'closed', 'completed'];
+//     if (!allowed.includes(status)) {
+//         return res.status(400).json({ success: false, message: "Invalid status" });
+//     }
+//     const sql = `UPDATE Elections SET status = ? WHERE election_id = ?`;
+//     db.query(sql, [status, id], (err) => {
+//         if (err) return res.status(500).json({ success: false, message: "DB error" });
+//         res.json({ success: true, election_id: id, status });
+//     });
+// };
+
+exports.updateElectionWithImage = (req, res) => {
+    const electionId = req.params.id;
+    const {
+        election_name,
+        description,
+        registration_start,
+        registration_end,
+        start_date,
+        end_date,
+        status // <<== รับค่ามาด้วย
+    } = req.body;
 
     let sql = `
     UPDATE Elections
     SET election_name = ?, description = ?, registration_start = ?, registration_end = ?,
-        start_date = ?, end_date = ?
+        start_date = ?, end_date = ?, status = ?
     `;
-    const params = [election_name, description, registration_start, registration_end, start_date, end_date];
+    const params = [
+        election_name,
+        description,
+        registration_start,
+        registration_end,
+        start_date,
+        end_date,
+        status // <<== ใส่ใน params
+    ];
 
     if (req.file) {
         const image_path = `/uploads/elections/${req.file.filename}`;
-        sql += `, image_path  = ?`;
+        sql += `, image_path = ?`;
         params.push(image_path);
     }
 
@@ -187,80 +223,3 @@ exports.updateElectionWithImage = (req, res) => {
         res.json({ success: true, message: "Election updated" });
     });
 };
-
-
-
-
-
-
-
-
-// exports.updateElectionWithImage = async (req, res) => {
-//     try {
-//         console.log("📥 PUT /elections/:id ถูกเรียกแล้ว");
-//         console.log("🔸 req.body:", req.body);
-//         console.log("🔹 req.file:", req.file);
-
-//         const election_id = req.params.id;
-//         const {
-//             election_name,
-//             description,
-//             registration_start,
-//             registration_end,
-//             start_date,
-//             end_date,
-//         } = req.body;
-
-//         // ตรวจสอบค่า
-//         if (!election_name || !description) {
-//             return res.status(400).json({ success: false, message: "ข้อมูลไม่ครบ" });
-//         }
-
-//         // SQL อัปเดต
-//         let image_url = null;
-//         if (req.file) {
-//             image_url = req.file.filename;
-//         }
-
-//         const sql = `
-//         UPDATE elections SET
-//         election_name = ?,
-//         description = ?,
-//         registration_start = ?,
-//         registration_end = ?,
-//         start_date = ?,
-//         end_date = ?${image_url ? `, image_url = ?` : ""}
-//         WHERE election_id = ?
-//     `;
-
-//         const params = [
-//             election_name,
-//             description,
-//             registration_start,
-//             registration_end,
-//             start_date,
-//             end_date,
-//         ];
-
-//         if (image_url) params.push(image_url);
-//         params.push(election_id);
-
-//         await db.query(sql, params);
-
-//         res.json({ success: true, message: "อัปเดตสำเร็จ" });
-//     } catch (error) {
-//         console.error("❌ UPDATE ERROR:", error);
-//         res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์" });
-//     }
-// };
-
-
-exports.deleteElection = (req, res) => {
-    const electionId = req.params.id;
-    const sql = 'DELETE FROM Elections WHERE election_id = ?';
-
-    db.query(sql, [electionId], (err) => {
-        if (err) return res.status(500).json({ success: false, error: err });
-        res.json({ success: true, message: "Election deleted successfully" });
-    });
-}

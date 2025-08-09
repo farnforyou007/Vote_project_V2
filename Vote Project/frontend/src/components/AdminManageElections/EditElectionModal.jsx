@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import Swal from 'sweetalert2';
 
 export default function EditElectionModal({ election, onClose, onSave }) {
   const [form, setForm] = useState({
@@ -66,7 +67,8 @@ export default function EditElectionModal({ election, onClose, onSave }) {
         registration_end: election.registration_end?.slice(0, 16) || "",
         start_date: election.start_date?.slice(0, 16) || "",
         end_date: election.end_date?.slice(0, 16) || "",
-        image_url: election.image_url || election.image_path || "" // ✅ แก้ตรงนี้
+        image_url: election.image_url || election.image_path || "", // ✅ แก้ตรงนี้
+        status: election.status || "registration"   // << เพิ่มตรงนี้
       });
 
       const image = election.image_url || election.image_path;
@@ -77,9 +79,8 @@ export default function EditElectionModal({ election, onClose, onSave }) {
       }
     }
   }, [election]);
+
   console.log("🧪 Props ที่ได้รับ:", { election, onClose, onSave });
-
-
   console.log("🖼️ image_url ที่ได้จาก backend:", election?.image_url);
   console.log("📸 preview ที่ตั้งค่า:", preview);
 
@@ -98,115 +99,81 @@ export default function EditElectionModal({ election, onClose, onSave }) {
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    // ✅ เพิ่ม popup ยืนยันก่อน
+    const result = await Swal.fire({
+      title: 'ยืนยันการแก้ไข?',
+      text: 'คุณแน่ใจหรือไม่ว่าต้องการแก้ไขรายการเลือกตั้งนี้',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#16a34a',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'ยืนยัน !',
+      cancelButtonText: 'ยกเลิก'
+    });
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   const formData = new FormData();
+    if (!result.isConfirmed) {
+      // onClose(); // ❌ ปิด modal ถ้าไม่กดตกลง
+      return; // ❌ ถ้าไม่กดตกลง ให้หยุดไว้
+    }
+    if (result.isConfirmed) {
+      Swal.fire("แก้ไขรายการเลือกตั้งสำเร็จ!", "", "success");
+    }
+    // ✅ Validate วันที่ก่อนส่ง (ควรอยู่ในนี้เท่านั้น!)
+    const startReg = new Date(form.registration_start);
+    const endReg = new Date(form.registration_end);
+    const startVote = new Date(form.start_date);
+    const endVote = new Date(form.end_date);
 
-  //   formData.append("election_name", form.election_name);
-  //   formData.append("description", form.description);
-  //   formData.append("registration_start", form.registration_start);
-  //   formData.append("registration_end", form.registration_end);
-  //   formData.append("start_date", form.start_date);
-  //   formData.append("end_date", form.end_date);
+    if (startReg >= endReg) {
+      toast.error("วันเริ่มรับสมัครต้องมาก่อนวันสิ้นสุดรับสมัคร");
+      return;
+    }
+    if (startVote >= endVote) {
+      toast.error("วันเริ่มลงคะแนนต้องมาก่อนวันสิ้นสุดลงคะแนน");
+      return;
+    }
 
-  //   if (imageFile) {
-  //     formData.append("image", imageFile);
-  //   }
+    const formData = new FormData();
+    formData.append("election_name", form.election_name);
+    formData.append("description", form.description);
+    formData.append("registration_start", form.registration_start);
+    formData.append("registration_end", form.registration_end);
+    formData.append("start_date", form.start_date);
+    formData.append("end_date", form.end_date);
+    formData.append("status", form.status);
+    if (imageFile) {
+      formData.append("image", imageFile);
+    }
 
-  //   const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
+    const res = await fetch(`http://localhost:5000/api/elections/${election.election_id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
 
-  //   const res = await fetch(`http://localhost:5000/api/elections/${election.election_id}`, {
-  //     method: "PUT",
-  //     headers: {
-  //       Authorization: `Bearer ${token}`,
-  //     },
-  //     body: formData,
-  //   });
+    const data = await res.json();
+    if (data.success) {
+      toast.success("แก้ไขสำเร็จ");
+      await onSave(formData);
+      onClose();
+    } else {
+      alert("เกิดข้อผิดพลาด: " + (data.message || "ไม่สามารถแก้ไขได้"));
+    }
+  };
 
-  //   // ✅ Validate วันที่ก่อนส่ง
-  //   const startReg = new Date(form.registration_start);
-  //   const endReg = new Date(form.registration_end);
-  //   const startVote = new Date(form.start_date);
-  //   const endVote = new Date(form.end_date);
-
-  //   if (startReg >= endReg) {
-  //     toast.error("วันเริ่มรับสมัครต้องมาก่อนวันสิ้นสุดรับสมัคร");
-  //     return;
-  //   }
-  //   if (startVote >= endVote) {
-  //     toast.error("วันเริ่มลงคะแนนต้องมาก่อนวันสิ้นสุดลงคะแนน");
-  //     return;
-  //   }
-
-  //   const data = await res.json();
-  //   if (data.success) {
-  //     // toast.success("อัปเดตสำเร็จ"); // หรือ alert ก็ได้
-  //     alert("อัปเดตสำเร็จ");
-  //     await onSave(formData);          // ✅ รอให้ parent fetch เสร็จ
-  //     onClose();
-
-  //   } else {
-  //     alert("เกิดข้อผิดพลาด: " + data.message || "ไม่สามารถอัปเดตได้");
-  //   }
-  // };
-
-const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  // ✅ Validate วันที่ก่อนส่ง (ควรอยู่ในนี้เท่านั้น!)
-  const startReg = new Date(form.registration_start);
-  const endReg = new Date(form.registration_end);
-  const startVote = new Date(form.start_date);
-  const endVote = new Date(form.end_date);
-
-  if (startReg >= endReg) {
-    toast.error("วันเริ่มรับสมัครต้องมาก่อนวันสิ้นสุดรับสมัคร");
-    return;
+  if (!election || !onClose || !onSave) {
+    return <div className="text-red-500 p-4">มีข้อมูลไม่ครบ (election / onClose / onSave)</div>;
   }
-  if (startVote >= endVote) {
-    toast.error("วันเริ่มลงคะแนนต้องมาก่อนวันสิ้นสุดลงคะแนน");
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append("election_name", form.election_name);
-  formData.append("description", form.description);
-  formData.append("registration_start", form.registration_start);
-  formData.append("registration_end", form.registration_end);
-  formData.append("start_date", form.start_date);
-  formData.append("end_date", form.end_date);
-
-  if (imageFile) {
-    formData.append("image", imageFile);
-  }
-
-  const token = localStorage.getItem("token");
-  const res = await fetch(`http://localhost:5000/api/elections/${election.election_id}`, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: formData,
-  });
-
-  const data = await res.json();
-  if (data.success) {
-    toast.success("อัปเดตสำเร็จ");
-    await onSave(formData);
-    onClose();
-  } else {
-    alert("เกิดข้อผิดพลาด: " + (data.message || "ไม่สามารถอัปเดตได้"));
-  }
-};
-
-if (!election || !onClose || !onSave) {
-  return <div className="text-red-500 p-4">มีข้อมูลไม่ครบ (election / onClose / onSave)</div>;
-}
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-purple-100 border border-purple-200 rounded-lg p-6 w-full max-w-3xl relative shadow-xl">
+      <div className="bg-purple-100 border border-purple-200 rounded-lg p-6 w-[90%] max-w-2xl relative shadow-xl overflow-y-auto max-h-[90vh]">
+
         <h2 className="text-center text-xl font-bold text-purple-900 bg-purple-200 rounded py-2 mb-4 shadow-sm">
           แก้ไขรายการเลือกตั้ง
         </h2>
@@ -282,6 +249,23 @@ if (!election || !onClose || !onSave) {
             </div>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
+            <select
+              name="status"
+              value={form.status}
+              onChange={handleChange}
+              className="w-full border border-purple-300 p-2 rounded"
+              required
+            >
+              <option value="draft">ฉบับร่าง</option>
+              <option value="registration">เปิดรับสมัคร</option>
+              <option value="active">เปิดลงคะแนน</option>
+              <option value="closed">ปิดโหวต</option>
+              <option value="completed">ประกาศผล</option>
+            </select>
+          </div>
+
           <label className="block text-sm font-medium text-gray-700 mb-1">รูปภาพประกอบ</label>
           <input
             type="file"
@@ -289,16 +273,8 @@ if (!election || !onClose || !onSave) {
             onChange={handleImageChange}
             className="w-full border border-purple-300 p-2 rounded bg-white"
           />
-          {/* {previewUrl && (
-              <img src={previewUrl} alt="preview" className="w-32 mt-2 rounded shadow" />
-            )} */}
 
-          {/* {previewUrl && (
-              <img src={previewUrl} alt="Preview" className="w-32 h-auto mt-2 border rounded" />
-            )} */}
-
-
-          {!preview && form.image_url && (
+          {/* {!preview && form.image_url && (
             <div className="mb-2">
               <img
                 src={`http://localhost:5000${form.image_url}`}
@@ -306,12 +282,12 @@ if (!election || !onClose || !onSave) {
                 className="h-40 object-contain mx-auto rounded shadow"
               />
             </div>
-          )}
+          )} */}
 
 
           {preview && (
             <div className="mb-2">
-              <img src={preview} alt="preview" className="h-40 object-contain mx-auto rounded shadow" />
+              <img src={preview} alt="preview" className="h-32 object-contain mx-auto rounded shadow" />
             </div>
           )}
 

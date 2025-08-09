@@ -34,11 +34,20 @@ app.use('/uploads', express.static('uploads'));
 // -------------------- Routes --------------------
 const userRoutes = require('./routes/user.routes');
 const electionRoutes = require('./routes/election.routes');
-
-
+const eligibilityRoutes = require('./routes/eligibility.routes');
+const applicationRoutes = require('./routes/application.routes');
+const candidateRoutes = require('./routes/candidate.routes');
+const voteRoutes = require('./routes/vote.routes');
+app.use('/api', candidateRoutes);
+app.use('/api', voteRoutes);
 app.use('/api/users', userRoutes);
+// app.use('/api/students ', userRoutes);
 app.use('/api/elections', electionRoutes);
+app.use('/api', eligibilityRoutes);
 
+app.use('/api', applicationRoutes);
+
+// app.use('/api',candidateRoutes);
 
 // -------------------- Start Server --------------------
 const PORT = process.env.PORT || 5000;

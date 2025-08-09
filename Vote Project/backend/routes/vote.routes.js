@@ -4,7 +4,9 @@ const router = express.Router();
 const voteController = require('../controllers/vote.controller');
 const verifyToken = require('../middleware/auth');
 
-router.post('/', verifyToken, voteController.castVote);
+router.post('/vote', verifyToken, voteController.castVote);
 router.get('/history', verifyToken, voteController.getVoteHistory);
+router.get('/votes/status', verifyToken, voteController.getVoteStatus);
+
 
 module.exports = router;

@@ -5,7 +5,7 @@ export default function ViewResultButton({ electionId }) {
   return (
     <button
       onClick={() => navigate(`/election/${electionId}/result`)}
-      className="bg-cyan-500 text-white px-2 py-1 rounded text-xs hover:bg-cyan-600"
+      className="bg-cyan-500 text-white px-2 py-1 rounded hover:bg-cyan-600"
     >
       ดูผล
     </button>

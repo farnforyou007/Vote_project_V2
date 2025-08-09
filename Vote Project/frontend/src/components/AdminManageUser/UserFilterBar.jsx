@@ -34,8 +34,9 @@ export default function UserFilterBar({
             value={search} onChange={e => setSearch(e.target.value)}
             className="p-2 rounded flex-1 bg-violet-50 border border-violet-300" />
 
-            <button onClick={onAddUserClick} className="bg-blue-500 hover:bg-blue-400 text-white font-bold py-2 px-4 border-b-4 border-blue-700 hover:border-blue-500 rounded">
-                เพิ่มผู้ใช้งาน
+            <button onClick={onAddUserClick} 
+            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 font-semibold">
+                + เพิ่มผู้ใช้งาน
             </button>
         </div>
     );

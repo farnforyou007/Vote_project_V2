@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Header from "./components/Header";
-
+import { translateStatus } from "./utils/dateUtils";
+import { useNavigate } from "react-router-dom";
+import { FaArrowLeft } from "react-icons/fa";
 const formatDateTime = (dateString) => {
     if (!dateString) return "ไม่ระบุ";
     const date = new Date(dateString);
@@ -15,6 +17,7 @@ const formatDateTime = (dateString) => {
 };
 
 export default function ElectionDetail() {
+    const navigate = useNavigate();
     const { id } = useParams();
     const [election, setElection] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -39,6 +42,7 @@ export default function ElectionDetail() {
                     setElection(data.election);
                 } else {
                     alert("ไม่สามารถโหลดข้อมูลได้");
+                    alert("กรุณาเข้าสู่ระบบใหม่");
                 }
             } catch (err) {
                 console.error(err);
@@ -62,11 +66,16 @@ export default function ElectionDetail() {
                     {election.election_name}
                 </h1>
                 <img
-                    src={`http://localhost:5000${election.image_path}`}
+                    // src={`http://localhost:5000${election.image_path}`}
+                    src={`http://localhost:5000${election.image_url}`}
                     alt="election"
                     className="w-full h-128 object-cover rounded mb-4"
                 />
-                <p className="text-gray-700 mb-2">{election.description}</p>
+                <div className="h-[4.5rem] overflow-hidden">
+                    <p className="text-sm text-gray-700 line-clamp-2 break-all">
+                        {election.description}
+                    </p>
+                </div>
                 <p className="text-sm">
                     <strong>วันที่เปิดรับสมัคร:</strong>{" "}
                     {formatDateTime(election.registration_start)}
@@ -83,13 +92,35 @@ export default function ElectionDetail() {
                     <strong>วันที่สิ้นสุดการลงคะแนน:</strong>{" "}
                     {formatDateTime(election.end_date)}
                 </p>
-                <p className="text-sm mt-2">
+                {/* <p className="text-sm mt-2">
                     <strong>สถานะ:</strong>{" "}
                     <span className="text-green-600 font-bold">{election.status}</span>
+                </p> */}
+                <p className="text-sm mt-2">
+                    <span className="font-semibold">สถานะ:</span>{" "}
+                    <span className={`px-2 py-1 rounded text-white text-xs ${election.computed_status === "registration" ? "bg-violet-500" :
+                        election.computed_status === "active" ? "bg-green-500" :
+                            election.computed_status === "closed" ? "bg-gray-500" :
+                                election.computed_status === "completed" ? "bg-slate-500" : "bg-purple-500"
+                        }`}>
+                        {translateStatus(election.computed_status)}
+                    </span>
                 </p>
 
                 {/* ตัวอย่างปุ่มตามบทบาท */}
                 <div className="mt-4 flex flex-col space-y-2">
+                    <div className="mb-4">
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
+                        >
+                            ← ย้อนกลับ
+                        </button>
+
+                    </div>
+                    {/* <button className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">
+                        ย้อนกลับ
+                    </button> */}
                     {isLoggedIn && roles.includes("นักศึกษา") && election.status === "active" && (
                         <button className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">
                             โหวต

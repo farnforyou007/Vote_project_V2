@@ -15,7 +15,9 @@ exports.refreshToken = (req, res) => {
         const newToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
 
         res.json({ success: true, token: newToken });
+
     });
+
 };
 
 
@@ -61,11 +63,13 @@ exports.login = (req, res) => {
     console.log("REQ LOGIN:", student_id, password); // ✅ ตรวจ input
 
     const sql = `
-    SELECT u.*,
+    SELECT u.*, d.department_name, y.year_name,
     GROUP_CONCAT(r.role_name) AS roles
     FROM users u
     LEFT JOIN user_roles ur ON u.user_id = ur.user_id
     LEFT JOIN role r ON ur.role_id = r.role_id
+    LEFT JOIN department d ON u.department_id = d.department_id
+    LEFT JOIN year_levels y ON u.year_id = y.year_id
     WHERE u.student_id = ?
     GROUP BY u.user_id
     `;
@@ -100,12 +104,58 @@ exports.login = (req, res) => {
         res.json({
             success: true,
             token,
-            student_name: user.first_name,
+            student_name: user.first_name + ' ' + user.last_name,
+            student_id: user.student_id,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            email: user.email,
+            department: user.department_name, // ✅ ส่งชื่อแผนก
+            year_level: user.year_name,       // ✅ ส่งชื่อชั้นปี
             roles: payload.roles,
         });
+
     });
 };
 
+exports.updateEmailAndPassword = async (req, res) => {
+    const user_id = req.user.user_id;
+    const { email, current_password, new_password } = req.body;
+
+    // โหลดข้อมูลผู้ใช้ก่อน
+    const sql = `SELECT password_hash FROM users WHERE user_id = ?`;
+    db.query(sql, [user_id], async (err, results) => {
+        if (err) return res.status(500).json({ success: false });
+
+        const user = results[0];
+        const match = await bcrypt.compare(current_password || '', user.password_hash);
+
+        if (!match && new_password) {
+            return res.status(401).json({
+                success: false,
+                message: 'รหัสผ่านเดิมไม่ถูกต้อง',
+            });
+        }
+
+        const updates = ['email = ?'];
+        const values = [email];
+
+        if (new_password) {
+            const newHash = await bcrypt.hash(new_password, 10);
+            updates.push('password_hash = ?');
+            values.push(newHash);
+        }
+
+        values.push(user_id);
+
+        const updateSql = `
+         UPDATE users SET ${updates.join(', ')}, updated_at = NOW() WHERE user_id = ?
+    `;
+        db.query(updateSql, values, (err2) => {
+            if (err2) return res.status(500).json({ success: false });
+            res.json({ success: true });
+        });
+    });
+};
 exports.getAllUsers = (req, res) => {
     const sql = `SELECT u.user_id, u.student_id, u.first_name, u.last_name,
     u.email, d.department_name, y.year_name, GROUP_CONCAT(r.role_name) AS roles,
@@ -234,3 +284,42 @@ exports.deleteUser = (req, res) => {
         });
     });
 };
+
+exports.getStudents = (req, res) => {
+    const { level, year, department } = req.query;
+
+    let sql = `
+    SELECT u.*, y.level_id, y.year_name, d.department_name
+    FROM users u
+    JOIN user_roles ur ON u.user_id = ur.user_id
+    LEFT JOIN year_levels y ON u.year_id = y.year_id
+    LEFT JOIN department d ON u.department_id = d.department_id
+    WHERE ur.role_id = 1
+    `;
+
+    const params = [];
+
+    if (level) {
+        sql += ' AND y.level_id = ?';
+        params.push(parseInt(level));
+    }
+
+    if (year) {
+        sql += ' AND u.year_id = ?';
+        params.push(parseInt(year));
+    }
+
+    if (department) {
+        sql += ' AND u.department_id = ?';
+        params.push(parseInt(department));
+    }
+
+    db.query(sql, params, (err, results) => {
+        if (err) {
+            console.error("❌ SQL Error in getStudents:", err);
+            return res.status(500).json({ success: false, message: "DB error" });
+        }
+        res.json({ success: true, users: results });
+    });
+};
+

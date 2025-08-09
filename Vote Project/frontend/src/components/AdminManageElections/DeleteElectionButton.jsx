@@ -1,9 +1,28 @@
 // src/components/elections/DeleteElectionButton.jsx
+import Swal from 'sweetalert2';
+import { toast } from "react-toastify";
+import { FaTrash } from "react-icons/fa";
+
 export default function DeleteElectionButton({ electionId, onDeleted }) {
     const handleDelete = async () => {
-        const confirm = window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?");
-        if (!confirm) return;
+        const result = await Swal.fire({
+            title: 'ยืนยันการลบ?',
+            text: 'คุณแน่ใจหรือไม่ว่าต้องการลบรายการเลือกตั้งนี้',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#16a34a',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'ยืนยัน !',
+            cancelButtonText: 'ยกเลิก'
+        });
 
+        if (!result.isConfirmed) {
+            // onClose(); // ❌ ปิด modal ถ้าไม่กดตกลง
+            return; // ❌ ถ้าไม่กดตกลง ให้หยุดไว้
+        }
+        if (result.isConfirmed) {
+            Swal.fire("ลบรายการเลือกตั้งสำเร็จ!", "", "success");
+        }
         try {
             const token = localStorage.getItem("token");
             const res = await fetch(`http://localhost:5000/api/elections/${electionId}`, {
@@ -13,10 +32,10 @@ export default function DeleteElectionButton({ electionId, onDeleted }) {
 
             const data = await res.json();
             if (data.success) {
-                alert("ลบสำเร็จ");
+                toast.success("ลบสำเร็จ");
                 if (onDeleted) onDeleted(electionId);
             } else {
-                alert("ลบไม่สำเร็จ: " + (data.message || ""));
+                toast.error("ลบไม่สำเร็จ: " + (data.message || ""));
             }
         } catch (err) {
             console.error(err);
@@ -27,9 +46,9 @@ export default function DeleteElectionButton({ electionId, onDeleted }) {
     return (
         <button
             onClick={handleDelete}
-            className="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600"
+            className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
         >
-            ลบ
+          <FaTrash className='inline' size={12}/>  ลบ
         </button>
     );
 }

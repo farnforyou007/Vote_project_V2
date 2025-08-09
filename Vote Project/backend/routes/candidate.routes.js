@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/auth');
-const requireRole = require('../middleware/role');
 
-router.post('/approve/:id', verifyToken, requireRole('กรรมการ'), candidateController.approveCandidate);
+const candidateController = require('../controllers/candidate.controller');
+
+router.get('/candidates/:election_id',verifyToken, candidateController.getCandidatesByElection);
+
+module.exports = router;

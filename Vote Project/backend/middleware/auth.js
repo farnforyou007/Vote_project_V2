@@ -13,8 +13,12 @@ module.exports = function (req, res, next) {
 
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
-            return res.status(403).json({ success: false, message: 'Invalid token' });
+            return res.status(401).json({ success: false, message: 'Invalid or expired token' });
         }
+        if (!token) {
+            return res.status(401).json({ success: false, message: 'Missing token' });
+        }
+
         req.user = decoded;
         next();
     });

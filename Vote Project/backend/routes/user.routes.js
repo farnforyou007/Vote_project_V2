@@ -17,6 +17,10 @@ router.get('/', verifyToken,requireRole('ผู้ดูแล'),userController.
 router.post('/add', verifyToken,requireRole('ผู้ดูแล'), userController.addUser);
 router.put('/update/:id', verifyToken, requireRole('ผู้ดูแล'), userController.updateUser);
 router.delete('/delete/:id', verifyToken,requireRole('ผู้ดูแล'), userController.deleteUser);
+router.put('/update-email-password', verifyToken, userController.updateEmailAndPassword);
+
+// routes/userRoutes.js หรือ studentRoutes.js
+router.get('/students', verifyToken, userController.getStudents);
 
 // router.get('/', verifyToken, requireRole('ผู้ดูแล'), userController.getAllUsers); // ใช้ตรวจ role
 

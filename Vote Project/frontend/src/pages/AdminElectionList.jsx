@@ -9,6 +9,7 @@ import ApplicantsButton from "../components/AdminManageElections/ApplicantsButto
 import ManageVoteButton from "../components/AdminManageElections/ManageVoteButton";
 import ViewResultButton from "../components/AdminManageElections/ViewResultButton";
 import EditElectionModal from "../components/AdminManageElections/EditElectionModal";
+import AddElectionModal from "../components/AdminManageElections/AddElectionModal";
 import { formatDate, formatTime, translateStatus } from "../utils/dateUtils";
 
 
@@ -22,6 +23,7 @@ export default function AdminElectionList() {
     const roles = JSON.parse(localStorage.getItem("userRoles") || "[]");
 
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
     const [electionToEdit, setElectionToEdit] = useState(null);
 
     const fetchElections = async () => {
@@ -108,6 +110,7 @@ export default function AdminElectionList() {
         setShowEditModal(true);
 
     };
+
     // const handleDelete = async (id) => {
     //     if (!window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?")) return;
     //     try {
@@ -155,7 +158,8 @@ export default function AdminElectionList() {
                     <input type="text" value={search} onChange={e => setSearch(e.target.value)}
                         placeholder="ค้นหารายการเลือกตั้ง" className="border p-2 rounded flex-1 bg-gray-100" />
 
-                    <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 font-semibold">
+                    <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 font-semibold"
+                        onClick={() => setShowAddModal(true)}>
                         + เพิ่มรายการเลือกตั้ง
                     </button>
                 </div>
@@ -191,26 +195,29 @@ export default function AdminElectionList() {
                                             {e.computed_status === "active" ? "เปิด" : "ปิด"}
                                         </span> */}
                                         <span
-                                            className={`px-2 py-1 rounded text-white text-xs ${e.computed_status === "registration"
-                                                ? "bg-yellow-500"
+                                            className={`px-2 py-1 rounded text-white ${e.computed_status === "registration"
+                                                ? "bg-violet-500"
                                                 : e.computed_status === "active"
                                                     ? "bg-green-500"
                                                     : e.computed_status === "closed"
                                                         ? "bg-gray-500"
                                                         : e.computed_status === "completed"
-                                                            ? "bg-blue-500"
+                                                            ? "bg-slate-500"
                                                             : "bg-purple-500"
                                                 }`}
                                         >
-                                            {translateStatus(e.computed_status)}
+                                            {/* {translateStatus(e.computed_status)} */}
+                                            {translateStatus(e.status)}
+
                                         </span>
 
 
                                     </td>
                                     <td className="p-2 text-center space-x-1">
-                                        <ManageVoteButton onClick={() => alert("สิทธิ์ลงคะแนน: election_id " + e.election_id)} />
+                                        <ManageVoteButton onClick={() => navigate(`/admin/election/${e.election_id}/eligibility`)} />
 
                                         <ApplicantsButton electionId={e.election_id} />
+                                        
                                         <EditElectionButton onClick={() => handleEdit(e)} />
 
 
@@ -246,6 +253,14 @@ export default function AdminElectionList() {
             {elections.length === 0 && (
                 <p className="text-center text-gray-500 mt-6">ไม่มีรายการเลือกตั้ง</p>
             )}
+
+            {showAddModal && (
+                <AddElectionModal
+                    onClose={() => setShowAddModal(false)}
+                    onSave={fetchElections}
+                />
+            )}
+
         </>
     );
 }

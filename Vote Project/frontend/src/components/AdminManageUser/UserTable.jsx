@@ -1,3 +1,5 @@
+import { FaTrash, FaCheckCircle, FaTimesCircle, FaEye , FaEdit } from "react-icons/fa";
+
 export default function UserTable({ users, rowsPerPage, onEdit, onDelete }) {
     return (
         <div className="overflow-x-auto">
@@ -23,8 +25,15 @@ export default function UserTable({ users, rowsPerPage, onEdit, onDelete }) {
                             <td className="p-2">{user.department_name}</td>
                             <td className="p-2">{user.year_name}</td>
                             <td className="p-2 flex justify-center space-x-2">
-                                <button onClick={() => onEdit(user)} className="bg-green-500 text-white px-4 py-1 rounded hover:bg-green-600">แก้ไข</button>
-                                <button onClick={() => onDelete(user.user_id)} className="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600">ลบ</button>
+                                <button onClick={() => onEdit(user)} 
+                                className="bg-yellow-500 text-white px-4 py-1 rounded hover:bg-yellow-600">
+                                    <FaEdit className="inline" size={14}/> แก้ไข
+                                </button>
+
+                                <button onClick={() => onDelete(user.user_id)}
+                                    className="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600">
+                                    <FaEye className="inline" size={14} /> ลบ
+                                </button>
                             </td>
                         </tr>
                     ))}

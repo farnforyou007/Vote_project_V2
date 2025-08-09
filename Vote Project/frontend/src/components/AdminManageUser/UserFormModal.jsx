@@ -11,26 +11,54 @@ export default function UserFormModal({
           เพิ่มผู้ใช้งาน
         </h2>
         <form className="grid grid-cols-2 gap-4">
-          <input className="mt-1 border border-purple-300 p-2 rounded w-full" name="student_id" value={formData.student_id} onChange={e => setFormData(prev => ({ ...prev, student_id: e.target.value }))} placeholder="รหัสนักศึกษา" />
-          <input className="mt-1 border border-purple-300 p-2 rounded w-full" name="password" type="password" value={formData.password} onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))} placeholder="รหัสผ่าน" />
-          <input className="mt-1 border border-purple-300 p-2 rounded w-full" name="first_name" value={formData.first_name} onChange={e => setFormData(prev => ({ ...prev, first_name: e.target.value }))} placeholder="ชื่อ" />
-          <input className="mt-1 border border-purple-300 p-2 rounded w-full" name="last_name" value={formData.last_name} onChange={e => setFormData(prev => ({ ...prev, last_name: e.target.value }))} placeholder="นามสกุล" />
-          <input className="mt-1 border border-purple-300 p-2 rounded w-full" name="email" type="email" value={formData.email} onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))} placeholder="อีเมล" />
+          <label htmlFor="รหัสนักศึกษา/ชื่อผู้ใช้งาน" className="text-sm font-medium text-gray-700">รหัสนักศึกษา/ชื่อผู้ใช้งาน
+            <input className="mt-1 border border-purple-300 p-2 rounded w-full"
+              name="student_id" value={formData.student_id} onChange={e => setFormData(prev => ({ ...prev, student_id: e.target.value }))}
+              placeholder="รหัสนักศึกษา / ชื่อผู้ใช้งาน" />
+          </label>
+          <label htmlFor="รหัสผ่าน" className="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน
+            <input className="mt-1 border border-purple-300 p-2 rounded w-full"
+              name="password" type="password" value={formData.password} onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
+              placeholder="รหัสผ่าน" />
+          </label>
+          <label htmlFor="ชื่อ" className="block text-sm font-medium text-gray-700 mb-1">ชื่อ
+            <input className="mt-1 border border-purple-300 p-2 rounded w-full"
+              name="first_name" value={formData.first_name} onChange={e => setFormData(prev => ({ ...prev, first_name: e.target.value }))}
+              placeholder="ชื่อ" />
+          </label>
 
-          <select className="mt-1 border p-2 rounded w-full bg-violet-50 border-violet-300" value={formData.department_id} onChange={e => setFormData(prev => ({ ...prev, department_id: parseInt(e.target.value) }))}>
-            <option value="">เลือกแผนก</option>
-            {departments.map(d => <option key={d.department_id} value={d.department_id}>{d.department_name}</option>)}
-          </select>
+          <label htmlFor="นามสกุล" className="block text-sm font-medium text-gray-700 mb-1">นามสกุล
+            <input className="mt-1 border border-purple-300 p-2 rounded w-full"
+              name="last_name" value={formData.last_name} onChange={e => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
+              placeholder="นามสกุล" />
+          </label>
 
-          <select className="mt-1 border p-2 rounded w-full bg-violet-50 border-violet-300" value={formData.level_id} onChange={e => setFormData(prev => ({ ...prev, level_id: parseInt(e.target.value) }))}>
-            <option value="">เลือกระดับชั้น</option>
-            {educationLevels.map(l => <option key={l.level_id} value={l.level_id}>{l.level_name}</option>)}
-          </select>
+          <label htmlFor="อีเมล" className="block text-sm font-medium text-gray-700 mb-1">อีเมล
+            <input className="mt-1 border border-purple-300 p-2 rounded w-full"
+              name="email" type="email" value={formData.email} onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              placeholder="อีเมล" />
+          </label>
 
-          <select className="mt-1 border p-2 rounded w-full bg-violet-50 border-violet-300" value={formData.year_id} onChange={e => setFormData(prev => ({ ...prev, year_id: parseInt(e.target.value) }))}>
-            <option value="">เลือกชั้นปี</option>
-            {years.filter(y => !formData.level_id || y.level_id === parseInt(formData.level_id)).map(y => <option key={y.year_id} value={y.year_id}>{y.year_name}</option>)}
-          </select>
+          <label htmlFor="แผนก" className="block text-sm font-medium text-gray-700 mb-1">แผนก
+            <select className="mt-1 border p-2 rounded w-full bg-violet-50 border-violet-300" value={formData.department_id} onChange={e => setFormData(prev => ({ ...prev, department_id: parseInt(e.target.value) }))}>
+              <option value="">เลือกแผนก</option>
+              {departments.map(d => <option key={d.department_id} value={d.department_id}>{d.department_name}</option>)}
+            </select>
+          </label>
+
+          <label htmlFor="ระดับการศึกษา" className="block text-sm font-medium text-gray-700 mb-1">ระดับการศึกษา
+            <select className="mt-1 border p-2 rounded w-full bg-violet-50 border-violet-300" value={formData.level_id} onChange={e => setFormData(prev => ({ ...prev, level_id: parseInt(e.target.value) }))}>
+              <option value="">เลือกระดับการศึกษา</option>
+              {educationLevels.map(l => <option key={l.level_id} value={l.level_id}>{l.level_name}</option>)}
+            </select>
+          </label>
+
+          <label htmlFor="ปีที่" className="block text-sm font-medium text-gray-700 mb-1">ชั้นปี 
+            <select className="mt-1 border p-2 rounded w-full bg-violet-50 border-violet-300" value={formData.year_id} onChange={e => setFormData(prev => ({ ...prev, year_id: parseInt(e.target.value) }))}>
+              <option value="">เลือกชั้นปี</option>
+              {years.filter(y => !formData.level_id || y.level_id === parseInt(formData.level_id)).map(y => <option key={y.year_id} value={y.year_id}>{y.year_name}</option>)}
+            </select>
+          </label>
 
           <div className="col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">บทบาท</label>

@@ -1,15 +1,14 @@
 import { useState } from "react";
-import logo from "./assets/logo.jfif"; // โลโก้ในเครื่อง
+// import logo from "./assets/logo.jfif"; // โลโก้ในเครื่อง
 import { useNavigate } from "react-router-dom";
 import Header from "./components/Header"; //
 
 
 export default function Login() {
-    const [menuOpen, setMenuOpen] = useState(false);
+    // const [menuOpen, setMenuOpen] = useState(false);
     const [studentId, setStudentId] = useState(""); // เพิ่ม state สำหรับรหัสนักศึกษา
     const [password, setPassword] = useState("");   // เพิ่ม state สำหรับรหัสผ่าน
     const navigate = useNavigate();
-
 
     // ฟังก์ชันสำหรับล็อกอิน
     const handleLogin = async (e) => {
@@ -26,9 +25,22 @@ export default function Login() {
             const data = await res.json();
             if (data.success) {
                 // ✅ เก็บชื่อที่ API ส่งมา
+                localStorage.removeItem("token");
                 localStorage.setItem("token", data.token);
+                console.log("Token ที่เก็บหลัง login", localStorage.getItem("token"));
                 localStorage.setItem("studentName", data.student_name);
                 localStorage.setItem("userRoles", JSON.stringify(data.roles));
+                // localStorage.setItem("student_id", data.student_id);
+                // localStorage.setItem("first_name", data.student_name?.split(' ')[0] || '');
+                // localStorage.setItem("last_name", data.student_name?.split(' ')[1] || '');
+                // localStorage.setItem("email", data.email || '');
+                localStorage.setItem("student_id", data.student_id);
+                localStorage.setItem("first_name", data.first_name);
+                localStorage.setItem("last_name", data.last_name);
+                localStorage.setItem("email", data.email);
+                localStorage.setItem("department", data.department); // จะเป็นชื่อ เช่น "เทคโนโลยีสารสนเทศ"
+                localStorage.setItem("year_level", data.year_level);
+
                 navigate("/elections");
 
             } else {
