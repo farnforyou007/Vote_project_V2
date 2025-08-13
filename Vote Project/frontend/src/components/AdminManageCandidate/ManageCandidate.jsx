@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Header from "../Header";
-import { FaTrash, FaCheckCircle, FaTimesCircle, FaEye } from "react-icons/fa";
+import { FaTrash, FaEye } from "react-icons/fa";
 import Swal from 'sweetalert2';
 
 import CandidateModal from "./CandidateModal";
@@ -198,7 +198,7 @@ export default function AdminManageCandidates() {
                                         )}
                                     </td>
                                     <td className="p-2">{c.reviewer_name || "-"}</td>
-                                    <td className="p-2 flex gap-2 justify-center">
+                                    <td className="p-2 flex gap-2 justify-center">  
                                         <button
                                             onClick={() => setSelectedCandidate(c)}
                                             className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
@@ -208,9 +208,7 @@ export default function AdminManageCandidates() {
                                         </button>
                                         <button
                                             onClick={() => {
-                                                if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบผู้สมัครคนนี้?")) {
                                                     handleDelete(c.candidate_id);
-                                                }
                                             }}
                                             className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
                                         >

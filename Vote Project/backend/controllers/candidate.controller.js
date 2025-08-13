@@ -32,44 +32,102 @@ const db = require('../models/db');
 //     });
 // };
 
+// exports.getCandidatesByElection = (req, res) => {
+//     const election_id = req.params.election_id;
+
+//     const sql = `
+//         SELECT
+//             c.candidate_id,
+//             c.candidate_number,
+//             c.campaign_slogan,
+//             c.status,
+//             c.photo,
+//             u.first_name,
+//             u.last_name,
+//             d.department_name,
+//             y.year_name
+//         FROM candidates c
+//         JOIN applications a ON c.application_id = a.application_id
+//         JOIN users u ON a.user_id = u.user_id
+//         LEFT JOIN department d ON u.department_id = d.department_id
+//         LEFT JOIN year_levels y ON u.year_id = y.year_id
+//         WHERE a.election_id = ?
+//         AND c.status = 'approved'
+//         ORDER BY c.candidate_number ASC
+//     `;
+
+//     db.query(sql, [election_id], (err, results) => {
+//         if (err) {
+//             console.error(err);
+//             return res.status(500).json({ success: false, message: "ไม่สามารถดึงข้อมูลผู้สมัครได้" });
+//         }
+//         const mapped = results.map(row => ({
+//             candidate_id: row.candidate_id,
+//             number: row.candidate_number,
+//             full_name: `${row.first_name} ${row.last_name}`,
+//             image_url: row.photo,
+//             department: row.department_name,
+//             year_level: row.year_name,
+//             policy: row.campaign_slogan,
+//         }));
+//         res.json({ success: true, candidates: mapped });
+//     });
+// };
+
 exports.getCandidatesByElection = (req, res) => {
-    const election_id = req.params.election_id;
+    const electionId = req.params.id;
 
     const sql = `
-        SELECT
-            c.candidate_id,
-            c.candidate_number,
-            c.campaign_slogan,
-            c.status,
-            c.photo,
-            u.first_name,
-            u.last_name,
-            d.department_name,
-            y.year_name
-        FROM candidates c
-        JOIN applications a ON c.application_id = a.application_id
-        JOIN users u ON a.user_id = u.user_id
-        LEFT JOIN department d ON u.department_id = d.department_id
-        LEFT JOIN year_levels y ON u.year_id = y.year_id
-        WHERE a.election_id = ?
-        AND c.status = 'approved'
-        ORDER BY c.candidate_number ASC
+    SELECT
+      a.application_id AS candidate_id,
+      u.student_id,
+      CONCAT(u.first_name, ' ', u.last_name) AS full_name,
+      a.photo AS image_url,
+      a.campaign_slogan AS policy,
+      a.application_status AS status,
+      a.application_number,
+      a.reviewed_by,
+      a.reviewed_at,
+      a.submitted_at,
+      a.rejection_reason,
+      u.department_id,
+      d.department_name,
+      u.year_id,
+      y.year_name,
+      y.level_id,
+      CONCAT(r.first_name, ' ', r.last_name) AS reviewer_name
+    FROM applications a
+    JOIN users u ON a.user_id = u.user_id
+    LEFT JOIN users r ON a.reviewed_by = r.user_id
+    LEFT JOIN department d ON u.department_id = d.department_id
+    LEFT JOIN year_levels y ON u.year_id = y.year_id
+    WHERE a.election_id = ?
+    ORDER BY a.submitted_at DESC
     `;
 
-    db.query(sql, [election_id], (err, results) => {
+    db.query(sql, [electionId], (err, results) => {
         if (err) {
-            console.error(err);
-            return res.status(500).json({ success: false, message: "ไม่สามารถดึงข้อมูลผู้สมัครได้" });
+            console.error("❌ ดึงรายชื่อผู้สมัครผิดพลาด:", err);
+            return res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดที่ server" });
         }
-        const mapped = results.map(row => ({
-            candidate_id: row.candidate_id,
-            number: row.candidate_number,
-            full_name: `${row.first_name} ${row.last_name}`,
-            image_url: row.photo,
-            department: row.department_name,
-            year_level: row.year_name,
-            policy: row.campaign_slogan,
+
+        const processed = results.map((r) => ({
+            ...r,
+            image_url: r.image_url || "",
+            policy: r.policy || "-",
+            reviewer_name: r.reviewer_name || "-",
+            application_number: r.application_number || "-",
+            department_name: r.department_name || "-",
+            year_name: r.year_name || "-",
+            reject_reason: r.rejection_reason || null,
+            submitted_at: r.submitted_at || null,
+            reviewed_at: r.reviewed_at || null,
+
+            department_id: r.department_id || null,
+            year_id: r.year_id || null,
+            level_id: r.level_id || null,
         }));
-        res.json({ success: true, candidates: mapped });
+
+        return res.json({ success: true, candidates: processed });
     });
 };

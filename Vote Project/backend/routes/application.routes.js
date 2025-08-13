@@ -20,16 +20,21 @@ const upload = multer({ storage });
 router.post('/apply-candidate', upload.single('photo'), applyCandidate);
 
 // ✅ เส้นทางใหม่สำหรับกรรมการ
-router.put('/applications/:id/approve', verifyToken, applicationController.approveApplication);
-router.put('/applications/:id/reject', verifyToken, applicationController.rejectApplication);
-router.get('/applications/check/:election_id', verifyToken, applicationController.checkAlreadyApplied);
+// router.put('/applications/:id/approve', verifyToken, applicationController.approveApplication);
+// router.put('/applications/:id/reject', verifyToken, applicationController.rejectApplication);
+// router.get('/applications/check/:election_id', verifyToken, applicationController.checkAlreadyApplied);
+
+
+// เช็คว่าผู้ใช้นั้นมีใบสมัครมั้ย
 router.get('/applications/check',verifyToken,applicationController.checkApplicationStatus)
 
 
-router.post('/approve/:id', verifyToken, applicationController.approveCandidate);
+// router.post('/approve/:id', verifyToken, applicationController.approveCandidate);
 
 router.delete('/candidates/:id', verifyToken, applicationController.deleteCandidate);
-router.get('/elections/:id/candidates', verifyToken, applicationController.getCandidatesByElection);
+
+router.get('/elections/:id/candidates', verifyToken, applicationController.getCandidatesByElection); // ดึงใบสมัครแต่ละรายการนั้น
+
 router.get(
   "/applications/my-all",
   verifyToken,

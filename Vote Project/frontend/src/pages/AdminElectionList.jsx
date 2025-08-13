@@ -10,7 +10,11 @@ import ManageVoteButton from "../components/AdminManageElections/ManageVoteButto
 import ViewResultButton from "../components/AdminManageElections/ViewResultButton";
 import EditElectionModal from "../components/AdminManageElections/EditElectionModal";
 import AddElectionModal from "../components/AdminManageElections/AddElectionModal";
-import { formatDate, formatTime, translateStatus } from "../utils/dateUtils";
+import { formatDate, formatTime } from "../utils/dateUtils";
+import { translateStatus } from "../utils/electionStatus"
+import { apiFetch } from "../utils/apiFetch";
+
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 
 export default function AdminElectionList() {
@@ -29,15 +33,18 @@ export default function AdminElectionList() {
     const fetchElections = async () => {
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch("http://localhost:5000/api/elections", {
+            const data = await apiFetch("http://localhost:5000/api/elections", {
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
             });
-            const data = await res.json();
+            // const data = await res.json();
+                if (!data) return;
+
             if (data.success) {
-                setElections(data.elections);
+                // setElections(data.data);
+                setElections(data.data || data.elections || []);
             } else {
                 alert("ไม่สามารถโหลดข้อมูลได้");
             }
@@ -51,58 +58,27 @@ export default function AdminElectionList() {
         fetchElections();
     }, []);
 
-
-
-
-
     // const handleSave = async (formData) => {
     //     const token = localStorage.getItem("token");
 
     //     const res = await fetch(`http://localhost:5000/api/elections/${electionToEdit.election_id}`, {
     //         method: "PUT",
     //         headers: { Authorization: `Bearer ${token}` },
-    //         body: formData, // ✅ ต้องไม่ใส่ Content-Type เอง
+    //         body: formData,
     //     });
 
     //     const data = await res.json();
     //     if (data.success) {
-    //         setElections(prev =>
-    //             prev.map(e =>
-    //                 e.election_id === electionToEdit.election_id
-    //                     ? { ...e, ...data.updatedElection } // ✅ หรือ merge formData ถ้า backend ไม่ส่งกลับ
-    //                     : e
-    //             )
-    //         );
-    //         setShowEditModal(false);
+    //         // alert("อัปเดตสำเร็จ");
+
+    //         // ✅ โหลดข้อมูลใหม่หลังอัปเดต
+    //         await fetchElections();
+
+    //         setShowEditModal(false); // ✅ ปิด modal ทีหลัง
     //     } else {
     //         alert("อัปเดตไม่สำเร็จ");
     //     }
     // };
-
-    const handleSave = async (formData) => {
-        const token = localStorage.getItem("token");
-
-        const res = await fetch(`http://localhost:5000/api/elections/${electionToEdit.election_id}`, {
-            method: "PUT",
-            headers: { Authorization: `Bearer ${token}` },
-            body: formData,
-        });
-
-        const data = await res.json();
-        if (data.success) {
-            // alert("อัปเดตสำเร็จ");
-
-            // ✅ โหลดข้อมูลใหม่หลังอัปเดต
-            await fetchElections();
-
-            setShowEditModal(false); // ✅ ปิด modal ทีหลัง
-        } else {
-            alert("อัปเดตไม่สำเร็จ");
-        }
-    };
-
-
-
 
     const handleEdit = (election) => {
         setElectionToEdit(election);
@@ -132,7 +108,36 @@ export default function AdminElectionList() {
     //     }
     // };
 
-    const filtered = elections.filter(e =>
+    const toggleVisibility = async (election) => {
+        const token = localStorage.getItem("token");
+        try {
+            const data = await apiFetch(`http://localhost:5000/api/elections/${election.election_id}/visibility`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ is_hidden: !election.is_hidden }),
+            });
+            // const data = await res.json();
+            if(!data) return;
+
+            if (data.success) {
+                // refresh เฉพาะแถว หรือจะ refetch ทั้งหน้าก็ได้
+                setElections(prev =>
+                    prev.map(it => it.election_id === election.election_id ? { ...it, is_hidden: !election.is_hidden } : it)
+                );
+            } else {
+                alert("สลับการซ่อนล้มเหลว");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("สลับการซ่อนล้มเหลว (เครือข่าย)");
+        }
+    };
+
+
+    const filtered = (elections || []).filter(e =>
         e.election_name.toLowerCase().includes(search.toLowerCase())
     );
 
@@ -181,7 +186,16 @@ export default function AdminElectionList() {
                             {filtered.slice(0, rowsPerPage).map((e, index) => (
                                 <tr key={e.election_id} className="border-t hover:bg-gray-50">
                                     <td className="p-2 text-center">{index + 1}</td>
-                                    <td className="p-2">{e.election_name}</td>
+                                    <td className="p-2">{e.election_name}
+                                        {e.is_hidden ? (
+                                            <span
+                                                className="ml-2 text-[11px] bg-gray-600 text-white px-2 py-0.5 rounded align-middle"
+                                            // className="bg-gr-500 text-white px-2 py-1 rounded  hover:bg-yellow-600"
+                                            >
+                                                ซ่อนอยู่
+                                            </span>
+                                        ) : null}
+                                    </td>
                                     <td className="p-2 text-center">
                                         {formatDate(e.start_date)} - {formatDate(e.end_date)}
                                     </td>
@@ -189,12 +203,7 @@ export default function AdminElectionList() {
                                         {formatTime(e.start_date)} - {formatTime(e.end_date)}
                                     </td>
                                     <td className="p-2 text-center">
-                                        {/* <span className={`px-2 py-1 rounded text-white text-xs ${e.computed_status === "active" ? "bg-green-500" :
-                                            e.computed_status === "closed" ? "bg-gray-500" : "bg-yellow-500"
-                                            }`}>
-                                            {e.computed_status === "active" ? "เปิด" : "ปิด"}
-                                        </span> */}
-                                        <span
+                                        {/* <span
                                             className={`px-2 py-1 rounded text-white ${e.computed_status === "registration"
                                                 ? "bg-violet-500"
                                                 : e.computed_status === "active"
@@ -205,36 +214,52 @@ export default function AdminElectionList() {
                                                             ? "bg-slate-500"
                                                             : "bg-purple-500"
                                                 }`}
-                                        >
-                                            {/* {translateStatus(e.computed_status)} */}
-                                            {translateStatus(e.status)}
-
+                                        > */}
+                                        <span className={`px-2 py-1 rounded text-white text-xs 
+                                            ${e.effective_status === "REGISTRATION_OPEN" ? "bg-violet-500" :
+                                                e.effective_status === "VOTING_OPEN" ? "bg-green-500" :
+                                                    e.effective_status === "CLOSED_BY_ADMIN" ? "bg-gray-500" :
+                                                        e.effective_status === "ENDED" ? "bg-slate-500" :
+                                                            e.effective_status === "WAITING_VOTE" ? "bg-amber-500" :
+                                                                "bg-purple-500"
+                                            }`
+                                        }>
+                                            {translateStatus(e.effective_status || e.auto_status)}
                                         </span>
 
 
                                     </td>
-                                    <td className="p-2 text-center space-x-1">
-                                        <ManageVoteButton onClick={() => navigate(`/admin/election/${e.election_id}/eligibility`)} />
+                                    {/* <td className="p-2 text-center space-x-1"> */}
+                                    <td className="p-2 text-center">
+                                        {/* <div className="flex items-center justify-center gap-2 flex-nowrap"> */}
+                                        <div className="flex items-center gap-2 flex-nowrap overflow-x-auto whitespace-nowrap justify-start md:justify-center">
+                                            <ManageVoteButton onClick={() => navigate(`/admin/election/${e.election_id}/eligibility`)} />
 
-                                        <ApplicantsButton electionId={e.election_id} />
-                                        
-                                        <EditElectionButton onClick={() => handleEdit(e)} />
+                                            <ApplicantsButton electionId={e.election_id} />
+
+                                            <EditElectionButton onClick={() => handleEdit(e)} />
 
 
-                                        {/* <DeleteElectionButton electionId={e.election_id} onDeleted={handleDelete} /> */}
-                                        <DeleteElectionButton
-                                            electionId={e.election_id}
-                                            onDeleted={(deletedId) =>
-                                                setElections((prev) => prev.filter((el) => el.election_id !== deletedId))
-                                            }
-                                        />
+                                            {/* <DeleteElectionButton electionId={e.election_id} onDeleted={handleDelete} /> */}
+                                            <DeleteElectionButton
+                                                electionId={e.election_id}
+                                                onDeleted={(deletedId) =>
+                                                    setElections((prev) => prev.filter((el) => el.election_id !== deletedId))
+                                                }
+                                            />
 
-                                        {/* <button onClick={() => navigate(`/election/${e.election_id}/result`)}
-                                            className="bg-cyan-500 text-white px-2 py-1 rounded text-xs">
-                                            ดูผล
-                                        </button> */}
+                                            <ViewResultButton electionId={e.election_id} />
 
-                                        <ViewResultButton electionId={e.election_id} />
+                                            <button
+                                                onClick={() => toggleVisibility(e)}
+                                                className={`${e.is_hidden ? 'bg-gray-500 hover:bg-gray-600' : 'bg-slate-500 hover:bg-slate-600'} text-white px-2 py-1 rounded`}
+                                                title={e.is_hidden ? 'แสดงบนหน้ารวม' : 'ซ่อนจากหน้ารวม'}
+                                            >
+                                                {e.is_hidden ? <FaEye className="inline" size={16} /> : <FaEyeSlash className="inline" size={16} />}
+                                                {/* {' '} {e.is_hidden ? 'เลิกซ่อน' : 'ซ่อน'} */}
+                                            </button>
+                                        </div>
+
                                     </td>
                                 </tr>
                             ))}
@@ -247,7 +272,8 @@ export default function AdminElectionList() {
                 <EditElectionModal
                     election={electionToEdit}
                     onClose={() => setShowEditModal(false)}
-                    onSave={handleSave}
+                    // onSave={handleSave}
+                    onSave={fetchElections}
                 />
             )}
             {elections.length === 0 && (

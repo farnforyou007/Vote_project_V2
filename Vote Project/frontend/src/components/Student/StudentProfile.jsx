@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import Swal from 'sweetalert2';
 import Header from "../Header";
 import { toast } from "react-toastify";
+import { apiFetch } from "../../utils/apiFetch";
 
 export default function StudentProfile() {
     const studentName = localStorage.getItem("studentName") || "";
@@ -114,7 +115,7 @@ export default function StudentProfile() {
             payload.new_password = form.new_password;
         }
 
-        const res = await fetch(`http://localhost:5000/api/users/update-email-password`, {
+        const data = await apiFetch(`http://localhost:5000/api/users/update-email-password`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -123,8 +124,10 @@ export default function StudentProfile() {
             body: JSON.stringify(payload),
         });
 
-        const data = await res.json();
+        // const data = await res.json();
 
+        if(!data) return;
+        
         if (data.success) {
             // 🎉 แจ้งว่าอัปเดตสำเร็จหลังจากยืนยัน
             await Swal.fire('สำเร็จ', 'อัปเดตข้อมูลเรียบร้อยแล้ว', 'success');

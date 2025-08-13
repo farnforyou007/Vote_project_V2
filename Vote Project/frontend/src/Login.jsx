@@ -30,10 +30,6 @@ export default function Login() {
                 console.log("Token ที่เก็บหลัง login", localStorage.getItem("token"));
                 localStorage.setItem("studentName", data.student_name);
                 localStorage.setItem("userRoles", JSON.stringify(data.roles));
-                // localStorage.setItem("student_id", data.student_id);
-                // localStorage.setItem("first_name", data.student_name?.split(' ')[0] || '');
-                // localStorage.setItem("last_name", data.student_name?.split(' ')[1] || '');
-                // localStorage.setItem("email", data.email || '');
                 localStorage.setItem("student_id", data.student_id);
                 localStorage.setItem("first_name", data.first_name);
                 localStorage.setItem("last_name", data.last_name);

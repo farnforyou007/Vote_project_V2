@@ -4,6 +4,8 @@ const verifyToken = require('../middleware/auth');
 
 const candidateController = require('../controllers/candidate.controller');
 
-router.get('/candidates/:election_id',verifyToken, candidateController.getCandidatesByElection);
+// router.get('/elections/:id/candidates',verifyToken, candidateController.getCandidatesByElection);
+// router.get('/elections/:id/candidates', verifyToken, applicationController.getCandidatesByElection);
+
 
 module.exports = router;

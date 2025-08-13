@@ -1,32 +1,37 @@
+// version3
 import Swal from "sweetalert2";
 
 let isAlertingSession = false;
 
 export async function apiFetch(url, options = {}) {
-    const token = localStorage.getItem("token");
-    const headers = {
-        ...options?.headers,
-        Authorization: token ? `Bearer ${token}` : "",
-        "Content-Type": "application/json",
-    };
+  const token = localStorage.getItem("token");
+  const isFormData = options?.body instanceof FormData;
 
-    const res = await fetch(url, { ...options, headers });
-    if (res.status === 401) {
-        // ตรวจว่าตอนนี้อยู่หน้า login มั้ย
-        if (!isAlertingSession && window.location.pathname !== "/login") {
-            isAlertingSession = true;
-            await Swal.fire({
-                icon: "warning",
-                title: "เซสชันหมดอายุ",
-                text: "กรุณาเข้าสู่ระบบใหม่",
-                confirmButtonText: "เข้าสู่ระบบ",
-            });
-            localStorage.removeItem("token");
-            window.location.href = "/login";
-            setTimeout(() => { isAlertingSession = false }, 2000);
-        }
-        return null;
+  const headers = {
+    ...(options.headers || {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(!isFormData ? { "Content-Type": "application/json" } : {}), // ห้ามใส่ตอนเป็น FormData
+  };
+
+  const res = await fetch(url, { ...options, headers });
+
+  if (res.status === 401) {
+    if (!isAlertingSession && window.location.pathname !== "/login") {
+      isAlertingSession = true;
+      await Swal.fire({
+        icon: "warning",
+        title: "เซสชันหมดอายุ",
+        text: "กรุณาเข้าสู่ระบบใหม่",
+        confirmButtonText: "เข้าสู่ระบบ",
+      });
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+      setTimeout(() => { isAlertingSession = false; }, 1500);
     }
-    return res.json();
+    return null;
+  }
+
+  if (res.status === 204) return {};
+  return res.json();
 }
-    
+

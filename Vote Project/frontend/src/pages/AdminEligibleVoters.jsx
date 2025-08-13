@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import Swal from 'sweetalert2';
 import { toast } from "react-toastify";
 import { confirmToast } from "../utils/confirmToast";
+import { FaTrash } from "react-icons/fa";
 
 
 export default function ManageEligibilityPage() {
@@ -182,32 +183,7 @@ export default function ManageEligibilityPage() {
             alert("เชื่อมต่อไม่ได้");
         }
     };
-    ////////////////////////////////
-    // const handleAddAll = async () => {
-    //     const token = localStorage.getItem("token");
-    //     const confirm = window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการเพิ่มสิทธิ์ทั้งหมด? ${data.affectedRows} คน`);
-    //         if (!confirm) return;
-    //     try {
-    //         const res = await fetch(`http://localhost:5000/api/elections/${id}/eligibility/add-all`, {
-    //             method: "POST",
-    //             headers: {
-    //                 Authorization: `Bearer ${token}`
-    //             }
-    //         });
-
-    //         const data = await res.json();
-    //         if (data.success) {
-    //             alert(`✅ เพิ่มผู้มีสิทธิ์ทั้งหมดแล้ว จำนวน: ${data.affectedRows} คน`);
-    //             fetchStudents(); // รีเฟรชข้อมูล
-    //         } else {
-    //             alert("❌ เพิ่มไม่สำเร็จ: " + (data.message || "เกิดข้อผิดพลาด"));
-    //         }
-    //     } catch (err) {
-    //         console.error("❌ add-all error:", err);
-    //         alert("เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว");
-    //     }
-    // };
-
+    
     const handleAddAll = async () => {
         const token = localStorage.getItem("token");
 
@@ -360,8 +336,8 @@ export default function ManageEligibilityPage() {
 
                     <div className="ml-auto flex gap-2">
                         {/* <button onClick={selectAllFiltered} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">เลือกทั้งหมด</button> */}
-                        <button onClick={handleAddAll} 
-                        className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                        <button onClick={handleAddAll}
+                            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
                             + เพิ่มผู้มีสิทธิ์ทั้งหมด</button>
                     </div>
                 </div>
@@ -409,7 +385,9 @@ export default function ManageEligibilityPage() {
                 </div>
 
                 {/* ตารางคงเดิม */}
-                <table className="min-w-full bg-white border border-gray-300 text-sm">
+                {/* <table className="min-w-full bg-white border border-gray-300 text-sm"> */}
+                <table className="min-w-full bg-white border border-gray-300 text-sm text-center">
+
                     <thead className="bg-gray-200">
                         <tr>
                             <th className="p-2 text-center">เลือก</th>
@@ -442,29 +420,20 @@ export default function ManageEligibilityPage() {
                                     <td className="p-2">{u.first_name} {u.last_name}</td>
                                     <td className="p-2">{u.department_name}</td>
                                     <td className="p-2">{u.year_name}</td>
-                                    <td className="p-2 text-center">
+                                    <td className="p-2 text-center align-middle">
                                         <button
                                             onClick={() => handleRemove(u.user_id)}
                                             title={onlyEligible ? "" : "กรุณาแสดงเฉพาะผู้มีสิทธิ์ก่อนจึงจะลบได้"}
                                             disabled={!onlyEligible}
-                                            className={`px-3 py-1 rounded ${onlyEligible ? "bg-red-500 hover:bg-red-600 text-white" : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                                            className={`inline-flex items-center justify-center gap-1 px-3 py-1 rounded ${onlyEligible
+                                                    ? "bg-red-500 hover:bg-red-600 text-white"
+                                                    : "bg-gray-300 text-gray-600 cursor-not-allowed"
                                                 }`}
                                         >
-                                            ลบ
+                                            <FaTrash size={12} /> ลบ
                                         </button>
-                                        {/* <button
-                                        onClick={() => handleRemove(u.user_id)}
-                                        disabled={u.can_vote !== 1}
-                                        className={`px-3 py-1 rounded ${u.can_vote === 1
-                                                ? "bg-red-500 hover:bg-red-600 text-white"
-                                                : "bg-gray-300 text-gray-600 cursor-not-allowed"
-                                            }`}
-                                        title={u.can_vote === 1 ? "" : "ยังไม่มีสิทธิ์ในรายการนี้"}
-                                    >
-                                        ลบ
-                                    </button> */}
-
                                     </td>
+
 
 
                                 </tr>

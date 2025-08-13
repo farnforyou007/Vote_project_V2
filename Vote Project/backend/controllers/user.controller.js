@@ -12,7 +12,7 @@ exports.refreshToken = (req, res) => {
         if (err) return res.status(403).json({ success: false, message: 'Invalid token' });
 
         const payload = { user_id: user.user_id, roles: user.roles };
-        const newToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
+        const newToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         res.json({ success: true, token: newToken });
 
@@ -148,7 +148,7 @@ exports.updateEmailAndPassword = async (req, res) => {
         values.push(user_id);
 
         const updateSql = `
-         UPDATE users SET ${updates.join(', ')}, updated_at = NOW() WHERE user_id = ?
+        UPDATE users SET ${updates.join(', ')}, updated_at = NOW() WHERE user_id = ?
     `;
         db.query(updateSql, values, (err2) => {
             if (err2) return res.status(500).json({ success: false });

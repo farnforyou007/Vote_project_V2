@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Header from "./components/Header";
-import { formatDateTime, translateStatus } from "./utils/dateUtils";
+import { formatDateTime } from "./utils/dateUtils";
+import { translateStatus } from "./utils/electionStatus"
 import CandidateApplicationForm from "./components/Student/CandidateApplicationForm"
+import EditElectionModal from "./components/AdminManageElections/EditElectionModal";
+
 import Swal from "sweetalert2";
 import { apiFetch } from "./utils/apiFetch";
 
@@ -10,15 +13,18 @@ export default function ElectionList() {
 
     const [elections, setElections] = useState([]);
     const [loading, setLoading] = useState(true);
-
     const studentName = localStorage.getItem("studentName") || "";
     const roles = JSON.parse(localStorage.getItem("userRoles") || "[]");
     const isLoggedIn = !!studentName;
     const [applyingElectionId, setApplyingElectionId] = useState(null);
     const [showForm, setShowForm] = useState(false);
-    const [eligible, setEligible] = useState(false);
+    // const [eligible, setEligible] = useState(false);
     const [student, setStudent] = useState(null);
     const [votedElections, setVotedElections] = useState([]);
+    const [editingElection, setEditingElection] = useState(null);
+    const isAdmin = roles.includes("ผู้ดูแล");
+
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -38,7 +44,8 @@ export default function ElectionList() {
 
                 // const data = await res.json();
                 if (data.success) {
-                    setElections(data.elections);
+                    // setElections(data.data);
+                    setElections(data.data || data.elections || []);
                 } else {
                     alert("ไม่สามารถโหลดข้อมูลได้");
                 }
@@ -144,12 +151,77 @@ export default function ElectionList() {
         // navigate(`/election/${electionId}/vote`);
     };
 
-    const visibleElections = elections.filter(e =>
-        e.status !== "draft" // หรือจะ .computed_status !== "draft" ถ้าใช้ฟิลด์นี้
-    );
+    const handleEdit = (election) => {
+        setEditingElection(election);
+    };
+
+    const handleDelete = async (electionId) => {
+        const confirm = await Swal.fire({
+            title: "ยืนยันการลบ?",
+            text: "คุณไม่สามารถกู้คืนได้หลังจากลบ",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "ใช่, ลบเลย!",
+            cancelButtonText: "ยกเลิก"
+        });
+        if (!confirm.isConfirmed) return;
+
+        try {
+            await apiFetch(`http://localhost:5000/api/elections/${electionId}`, { method: "DELETE" });
+            setElections(prev => prev.filter(e => e.election_id !== electionId));
+            Swal.fire("ลบสำเร็จ!", "", "success");
+        } catch (err) {
+            Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถลบได้", "error");
+        }
+    };
+
+    const toggleVisibility = async (election) => {
+        const token = localStorage.getItem("token");
+        const willHide = !election.is_hidden;
+
+        const confirm = await Swal.fire({
+            title: willHide ? "ซ่อนรายการนี้?" : "ยกเลิกซ่อนรายการนี้?",
+            text: willHide ? "ผู้ใช้ทั่วไปจะไม่เห็นรายการนี้" : "ผู้ใช้ทั่วไปจะเห็นรายการนี้อีกครั้ง",
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonText: willHide ? "ซ่อน" : "ยืนยัน",
+            cancelButtonText: "ยกเลิก",
+        });
+        if (!confirm.isConfirmed) return;
+
+        try {
+            await apiFetch(`http://localhost:5000/api/elections/${election.election_id}/visibility`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ is_hidden: willHide })
+            });
+
+            // อัปเดต state ให้ทันที
+            setElections(prev =>
+                prev.map(e => e.election_id === election.election_id ? { ...e, is_hidden: willHide } : e)
+            );
+
+            Swal.fire(willHide ? "ซ่อนแล้ว" : "ยกเลิกซ่อนแล้ว", "", "success");
+        } catch (err) {
+            Swal.fire("เกิดข้อผิดพลาด", "อัปเดตการซ่อนไม่สำเร็จ", "error");
+        }
+    };
+
+    // ด้านบนไฟล์
+
+    // …ในคอมโพเนนต์ ก่อน return
+    const visibleElections = isAdmin
+        ? (elections || [])
+        : (elections || []).filter(e => !e.is_hidden); // ผู้ใช้ทั่วไปยังไม่เห็นที่ซ่อน
 
 
     if (loading) return <p className="p-8">กำลังโหลดข้อมูล...</p>
+
     return (
         <>
             <Header studentName={studentName} />
@@ -157,17 +229,28 @@ export default function ElectionList() {
             <div className="min-h-screen bg-purple-100 p-8">
                 <h1 className="text-2xl font-bold mb-6">รายการเลือกตั้ง</h1>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {elections.map((election) => (
+                    {/* {elections.map((election) => ( */}
+                    {/* {(elections || []).map((election) => ( */}
+                    {/* {(elections || []).filter(e => !e.is_hidden).map((election) => ( */}
+                    {visibleElections.map((election) => (
                         <div
                             key={election.election_id}
                             className="bg-white p-4 rounded shadow"
                         >
                             <img
-                                src={`http://localhost:5000${election.image_path}`}
+                                src={`http://localhost:5000${election.image_url}`}
                                 alt="election"
                                 className="w-full h-48 object-cover rounded mb-4"
                             />
-                            <p className="font-semibold mb-2">{election.election_name}</p>
+                            {/* <p className="font-semibold mb-2">{election.election_name}</p> */}
+                            <div className="flex items-center justify-between">
+                                <p className="font-semibold mb-2">{election.election_name}</p>
+                                {isAdmin && election.is_hidden && (
+                                    <span className="ml-2 inline-block text-xs px-2 py-0.5 rounded bg-gray-200 text-gray-700">
+                                        ซ่อนอยู่
+                                    </span>
+                                )}
+                            </div>
                             <div className="h-[4.5rem] overflow-hidden">
                                 <p className="text-sm text-gray-700 line-clamp-2 break-all">
                                     {election.description}
@@ -214,14 +297,34 @@ export default function ElectionList() {
 
                             <p className="text-sm mt-2">
                                 <span className="font-semibold">สถานะ:</span>{" "}
-                                <span className={`px-2 py-1 rounded text-white text-xs ${election.computed_status === "registration" ? "bg-violet-500" :
-                                    election.computed_status === "active" ? "bg-green-500" :
-                                        election.computed_status === "closed" ? "bg-gray-500" :
-                                            election.computed_status === "completed" ? "bg-slate-500" : "bg-purple-500"
-                                    }`}>
-                                    {translateStatus(election.computed_status)}
+                                {/* <span className={`px-2 py-1 rounded text-white text-xs 
+                                ${election.computed_status === "registration" ? "bg-violet-500" :
+                                        election.computed_status === "active" ? "bg-green-500" :
+                                            election.computed_status === "closed" ? "bg-gray-500" :
+                                                election.computed_status === "completed" ? "bg-slate-500" : "bg-purple-500"
+                                    }`
+                                }> */}
+
+                                <span className={`px-2 py-1 rounded text-white text-xs 
+                                ${election.effective_status === "REGISTRATION_OPEN" ? "bg-violet-500" :
+                                        election.effective_status === "VOTING_OPEN" ? "bg-green-500" :
+                                            election.effective_status === "CLOSED_BY_ADMIN" ? "bg-gray-500" :
+                                                election.effective_status === "ENDED" ? "bg-slate-500" :
+                                                    election.effective_status === "WAITING_VOTE" ? "bg-amber-500" :
+                                                        "bg-purple-500"
+                                    }`
+                                }>
+                                    {/* {translateStatus(election.computed_status)} */}
+                                    {translateStatus(election.effective_status || election.auto_status)}
                                 </span>
                             </p>
+
+                            {election.manual_override !== "AUTO" && (
+                                <p className="text-xs mt-1 text-gray-600">
+                                    หมายเหตุผู้ดูแล: {election.status_note || (election.manual_override === "FORCE_CLOSED" ? "ปิดชั่วคราวโดยผู้ดูแล" : "เปิดลงคะแนนแบบบังคับ")}
+                                </p>
+                            )}
+
 
                             <div className="mt-4 flex flex-col space-y-2">
                                 {/* ปุ่มดูรายละเอียด ทุกคนเห็น */}
@@ -236,7 +339,9 @@ export default function ElectionList() {
                                 {isLoggedIn && (
                                     <>
                                         {/* นักศึกษา: เปิดรับสมัคร */}
-                                        {roles.includes("นักศึกษา") && election.computed_status === "registration" && (
+                                        {/* {roles.includes("นักศึกษา") && election.computed_status === "registration" && ( */}
+                                        {roles.includes("นักศึกษา") && election.effective_status === "REGISTRATION_OPEN" && (
+
                                             <button
                                                 className="w-full bg-yellow-500 text-white py-1 rounded hover:bg-yellow-600"
                                                 onClick={() => checkEligibility(election.election_id)}
@@ -260,7 +365,9 @@ export default function ElectionList() {
 
                                         )} */}
 
-                                        {roles.includes("นักศึกษา") && election.computed_status === "active" && (
+                                        {/* {roles.includes("นักศึกษา") && election.computed_status === "active" && ( */}
+                                        {roles.includes("นักศึกษา") && election.effective_status === "VOTING_OPEN" && (
+
                                             votedElections.includes(election.election_id) ? (
                                                 <button
                                                     disabled
@@ -280,25 +387,72 @@ export default function ElectionList() {
 
 
                                         {/* นักศึกษา: ปิดโหวต */}
-                                        {roles.includes("นักศึกษา") && election.computed_status === "closed" && (
+                                        {/* {roles.includes("นักศึกษา") && election.computed_status === "closed" && ( */}
+                                        {roles.includes("นักศึกษา") && election.effective_status === "CLOSED_BY_ADMIN" && (
+
                                             <button className="w-full bg-gray-400 text-white py-1 rounded cursor-not-allowed">
                                                 ปิดโหวตแล้ว
                                             </button>
                                         )}
 
                                         {/* นักศึกษา: เสร็จสิ้น */}
-                                        {roles.includes("นักศึกษา") && election.computed_status === "completed" && (
-                                            <button className="w-full bg-blue-500 text-white py-1 rounded hover:bg-blue-600">
+                                        {/* {roles.includes("นักศึกษา") && election.computed_status === "completed" && ( */}
+                                        {roles.includes("นักศึกษา") && election.effective_status === "ENDED" && (
+
+                                            <button className="w-full bg-purple-500 text-white py-1 rounded hover:bg-purple-600">
                                                 ดูผลคะแนน
                                             </button>
                                         )}
 
                                         {/* ผู้ดูแล: ปุ่มจัดการ */}
-                                        {roles.includes("ผู้ดูแล") && (
-                                            <button className="w-full bg-purple-500 text-white py-1 rounded hover:bg-purple-600">
-                                                จัดการการเลือกตั้ง
-                                            </button>
+                                        {/* {roles.includes("ผู้ดูแล") && (
+                                            <div className="flex space-x-2">
+                                                <button
+                                                    onClick={() => handleEdit(election)}
+                                                    className="flex-1 bg-yellow-500 text-white py-1 rounded hover:bg-yellow-600"
+                                                >
+                                                    แก้ไข
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(election.election_id)}
+                                                    className="flex-1 bg-red-600 text-white py-1 rounded hover:bg-red-700"
+                                                >
+                                                    ลบ
+                                                </button>
+                                            </div>
+                                        )} */}
+
+                                        {isAdmin && (
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <button
+                                                    onClick={() => handleEdit(election)}
+                                                    className="bg-yellow-500 text-white py-1 rounded hover:bg-yellow-600"
+                                                >
+                                                    แก้ไข
+                                                </button>
+
+
+                                                <button
+                                                    onClick={() => handleDelete(election.election_id)}
+                                                    className="bg-red-600 text-white py-1 rounded hover:bg-red-700"
+                                                >
+                                                    ลบ
+                                                </button>
+
+                                                <button
+                                                    onClick={() => toggleVisibility(election)}
+                                                    className={`py-1 rounded text-white hover:opacity-90
+                                                    ${election.is_hidden ? "bg-slate-600" : "bg-violet-600"}`}
+                                                    title={election.is_hidden ? "ยกเลิกซ่อน" : "ซ่อน"}
+                                                >
+                                                    {election.is_hidden ? "ยกเลิกซ่อน" : "ซ่อน"}
+                                                </button>
+
+                                            </div>
                                         )}
+
+
+
                                     </>
                                 )}
                             </div>
@@ -315,6 +469,23 @@ export default function ElectionList() {
                     onClose={() => setShowForm(false)}
                 />
             )}
+
+            {editingElection && (
+                <EditElectionModal
+                    election={editingElection}
+                    onClose={() => setEditingElection(null)}
+                    onSave={async () => {
+                        const token = localStorage.getItem("token");
+                        const data = await apiFetch("http://localhost:5000/api/elections", {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        if (data && data.success) {
+                            setElections(data.data || []);
+                        }
+                    }}
+                />
+            )}
+
 
         </>
     );

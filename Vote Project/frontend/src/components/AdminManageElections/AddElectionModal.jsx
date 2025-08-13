@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
 import Swal from 'sweetalert2';
+import { apiFetch } from "../../utils/apiFetch";
 
 
 export default function AddElectionModal({ onClose, onSave }) {
@@ -79,7 +80,7 @@ export default function AddElectionModal({ onClose, onSave }) {
         }
 
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:5000/api/elections", {
+        const data = await apiFetch("http://localhost:5000/api/elections", {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -87,7 +88,8 @@ export default function AddElectionModal({ onClose, onSave }) {
             body: formData,
         });
 
-        const data = await res.json();
+        // const data = await res.json();
+        if (!data) return; // 401
         if (data.success) {
             toast.success("เพิ่มรายการสำเร็จ");
             await onSave(formData);
@@ -115,6 +117,7 @@ export default function AddElectionModal({ onClose, onSave }) {
                             onChange={handleChange}
                             className="w-full border border-purple-300 p-2 rounded"
                             required
+                            placeholder="กรอกชื่อรายการเลือกตั้ง"
                         />
                     </div>
 
@@ -126,6 +129,7 @@ export default function AddElectionModal({ onClose, onSave }) {
                             onChange={handleChange}
                             className="w-full border border-purple-300 p-2 rounded"
                             rows={3}
+                            placeholder="กรอกรายละเอียด"
                         />
                     </div>
 

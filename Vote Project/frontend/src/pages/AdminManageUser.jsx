@@ -5,6 +5,7 @@ import UserFilterBar from "../components/AdminManageUser/UserFilterBar";
 import UserTable from "../components/AdminManageUser/UserTable";
 import UserFormModal from "../components/AdminManageUser/UserFormModal";
 import UserEditModal from "../components/AdminManageUser/UserEditModal";
+import { apiFetch } from "../utils/apiFetch";
 
 export default function AdminManageUsers() {
     const [users, setUsers] = useState([]);
@@ -46,10 +47,11 @@ export default function AdminManageUsers() {
             if (selectedYear) query.push(`year_id=${selectedYear}`);
             if (selectedLevel) query.push(`level_id=${selectedLevel}`);
             const token = localStorage.getItem("token");
-            const res = await fetch(`http://localhost:5000/api/users/filtered-users?${query.join('&')}`, {
+            const data = await apiFetch(`http://localhost:5000/api/users/filtered-users?${query.join('&')}`, {
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             });
-            const data = await res.json();
+            // const data = await res.json();
+            if(!data) return;
             if (data.success) setUsers(data.users);
         } catch (err) {
             console.error('โหลด users ผิดพลาด:', err);

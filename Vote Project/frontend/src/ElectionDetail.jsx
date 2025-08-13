@@ -1,20 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Header from "./components/Header";
-import { translateStatus } from "./utils/dateUtils";
 import { useNavigate } from "react-router-dom";
-import { FaArrowLeft } from "react-icons/fa";
-const formatDateTime = (dateString) => {
-    if (!dateString) return "ไม่ระบุ";
-    const date = new Date(dateString);
-    return date.toLocaleString("th-TH", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-    });
-};
+// import { FaArrowLeft } from "react-icons/fa";
+import { apiFetch } from "./utils/apiFetch";
+import { formatDateTime } from "./utils/dateUtils";
+import { translateStatus } from "./utils/electionStatus"
+import Swal from "sweetalert2";
 
 export default function ElectionDetail() {
     const navigate = useNavigate();
@@ -25,21 +17,24 @@ export default function ElectionDetail() {
     const studentName = localStorage.getItem("studentName") || "";
     const roles = JSON.parse(localStorage.getItem("userRoles") || "[]");
     const isLoggedIn = !!studentName;
+    const [votedElections, setVotedElections] = useState([]);
+
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const token = localStorage.getItem("token");
-                // const res = await fetch(`http://localhost:5000/api/elections/${id}`);
-                const res = await fetch(`http://localhost:5000/api/elections/${id}`, {
+                const data = await apiFetch(`http://localhost:5000/api/elections/${id}`, {
                     headers: {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${token}`
                     }
                 });
-                const data = await res.json();
+                // const data = await res.json();
+                if (!data) return;
+
                 if (data.success) {
-                    setElection(data.election);
+                    setElection(data.data);
                 } else {
                     alert("ไม่สามารถโหลดข้อมูลได้");
                     alert("กรุณาเข้าสู่ระบบใหม่");
@@ -54,6 +49,29 @@ export default function ElectionDetail() {
 
         fetchData();
     }, [id]);
+
+    const handleVoteClick = async (electionId) => {
+        const token = localStorage.getItem('token');
+        // เช็คสิทธิ์โหวตก่อน
+        const eligibilityData = await apiFetch(`http://localhost:5000/api/eligibility/${electionId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!eligibilityData) return;
+
+        if (!eligibilityData.success || !eligibilityData.eligible) {
+            Swal.fire({
+                title: "คุณไม่มีสิทธิ์ลงคะแนนรายการนี้",
+                text: "คุณขาดคุณสมบัติในการลงคะแนน โปรดติดต่อเจ้าหน้าที่",
+                icon: "warning",
+                confirmButtonText: "รับทราบ",
+            });
+            return;
+        }
+        // ถ้ามีสิทธิ์ → ไปหน้าลงคะแนน
+        window.location.href = `/election/${electionId}/vote`;
+        // หรือถ้าใช้ react-router v6+
+        // navigate(`/election/${electionId}/vote`);
+    };
 
     if (loading) return <p className="p-8">กำลังโหลดข้อมูล...</p>;
     if (!election) return <p className="p-8">ไม่พบข้อมูลการเลือกตั้ง</p>;
@@ -76,7 +94,7 @@ export default function ElectionDetail() {
                         {election.description}
                     </p>
                 </div>
-                <p className="text-sm">
+                {/* <p className="text-sm">
                     <strong>วันที่เปิดรับสมัคร:</strong>{" "}
                     {formatDateTime(election.registration_start)}
                 </p>
@@ -91,19 +109,46 @@ export default function ElectionDetail() {
                 <p className="text-sm">
                     <strong>วันที่สิ้นสุดการลงคะแนน:</strong>{" "}
                     {formatDateTime(election.end_date)}
-                </p>
-                {/* <p className="text-sm mt-2">
-                    <strong>สถานะ:</strong>{" "}
-                    <span className="text-green-600 font-bold">{election.status}</span>
                 </p> */}
+
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-sm border-t pt-4">
+                    <div>
+                        <span className="font-semibold text-gray-700">📥 วันที่เปิดรับสมัคร:</span><br />
+                        <span className="text-gray-800">{formatDateTime(election.registration_start)}</span>
+                    </div>
+                    <div>
+                        <span className="font-semibold text-gray-700">📤 วันที่สิ้นสุดรับสมัคร:</span><br />
+                        <span className="text-gray-800">{formatDateTime(election.registration_end)}</span>
+                    </div>
+                    <div>
+                        <span className="font-semibold text-gray-700">🗳️ วันที่เริ่มลงคะแนน:</span><br />
+                        <span className="text-gray-800">{formatDateTime(election.start_date)}</span>
+                    </div>
+                    <div>
+                        <span className="font-semibold text-gray-700">🛑 วันที่สิ้นสุดการลงคะแนน:</span><br />
+                        <span className="text-gray-800">{formatDateTime(election.end_date)}</span>
+                    </div>
+                </div>
+
+
                 <p className="text-sm mt-2">
                     <span className="font-semibold">สถานะ:</span>{" "}
-                    <span className={`px-2 py-1 rounded text-white text-xs ${election.computed_status === "registration" ? "bg-violet-500" :
+                    {/* <span className={`px-2 py-1 rounded text-white text-xs ${election.computed_status === "registration" ? "bg-violet-500" :
                         election.computed_status === "active" ? "bg-green-500" :
                             election.computed_status === "closed" ? "bg-gray-500" :
                                 election.computed_status === "completed" ? "bg-slate-500" : "bg-purple-500"
-                        }`}>
-                        {translateStatus(election.computed_status)}
+                        }`}> */}
+                    <span className={`px-2 py-1 rounded text-white text-xs 
+                                ${election.effective_status === "REGISTRATION_OPEN" ? "bg-violet-500" :
+                            election.effective_status === "VOTING_OPEN" ? "bg-green-500" :
+                                election.effective_status === "CLOSED_BY_ADMIN" ? "bg-gray-500" :
+                                    election.effective_status === "ENDED" ? "bg-slate-500" :
+                                        election.effective_status === "WAITING_VOTE" ? "bg-amber-500" :
+                                            "bg-purple-500"
+                        }`
+                    }>
+                        {/* {translateStatus(election.computed_status)} */}
+                        {translateStatus(election.effective_status || election.auto_status)}
                     </span>
                 </p>
 
@@ -112,7 +157,7 @@ export default function ElectionDetail() {
                     <div className="mb-4">
                         <button
                             onClick={() => navigate(-1)}
-                            className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
+                            className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
                         >
                             ← ย้อนกลับ
                         </button>
@@ -121,12 +166,28 @@ export default function ElectionDetail() {
                     {/* <button className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">
                         ย้อนกลับ
                     </button> */}
-                    {isLoggedIn && roles.includes("นักศึกษา") && election.status === "active" && (
-                        <button className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">
-                            โหวต
-                        </button>
+                    {isLoggedIn && roles.includes("นักศึกษา") && election.effective_status === "VOTING_OPEN" && (
+                        // <button className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">
+                        //     ลงคะแนน
+                        // </button>
+                        votedElections.includes(election.election_id) ? (
+                            <button
+                                disabled
+                                className="w-full bg-gray-400 text-white py- rounded cursor-not-allowed"
+                            >
+                                ลงคะแนนแล้ว
+                            </button>
+                        ) : (
+                            <button
+                                className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
+
+                                onClick={() => handleVoteClick(election.election_id)}
+                            >
+                                ลงคะแนน
+                            </button>
+                        )
                     )}
-                    {isLoggedIn && roles.includes("นักศึกษา") && election.status === "registration" && (
+                    {isLoggedIn && roles.includes("นักศึกษา") && election.effective_status === "REGISTRATION_OPEN" && (
                         <button className="w-full bg-yellow-500 text-white py-2 rounded hover:bg-yellow-600">
                             สมัครเป็นผู้สมัคร
                         </button>
@@ -135,7 +196,15 @@ export default function ElectionDetail() {
                         <button className="w-full bg-purple-500 text-white py-2 rounded hover:bg-purple-600">
                             จัดการการเลือกตั้ง
                         </button>
+
                     )}
+                    {election.manual_override !== "AUTO" && (
+                        <p className="text-xs mt-1 text-gray-600">
+                            หมายเหตุผู้ดูแล: {election.status_note || (election.manual_override === "FORCE_CLOSED" ? "ปิดชั่วคราวโดยผู้ดูแล" : "เปิดลงคะแนนแบบบังคับ")}
+                        </p>
+                    )}
+
+
                 </div>
             </div>
         </>

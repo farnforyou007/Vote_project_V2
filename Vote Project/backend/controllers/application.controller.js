@@ -185,7 +185,7 @@ exports.approveCandidate = (req, res) => {
 
 
 
-// DELETE /api/candidates/:id
+// admin DELETE /api/candidates/:id
 exports.deleteCandidate = (req, res) => {
     const candidateId = req.params.id;
     db.query("DELETE FROM candidates WHERE candidate_id = ?", [candidateId], (err, result) => {
