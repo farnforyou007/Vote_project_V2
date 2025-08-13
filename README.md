@@ -1,70 +1,150 @@
-# Getting Started with Create React App
+# 🗳 Vote Project – Full Stack Setup Guide (TH)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+ระบบโหวต/เลือกตั้งออนไลน์ แบ่งออกเป็น 2 ส่วน
+- **Backend** – Node.js + Express + MySQL
+- **Frontend** – React + Tailwind CSS
 
-## Available Scripts
+> แนะนำให้ใช้ **Node.js v18 ขึ้นไป** (Backend ใช้ Express v5 ซึ่งต้องการ Node 18+)
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## 📂 โครงสร้างโปรเจกต์
+```
+Vote Project/
+│── backend/            # เซิร์ฟเวอร์และ API
+│── frontend/           # ส่วนติดต่อผู้ใช้
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 🔧 ติดตั้งโปรแกรมที่จำเป็น
+- [Node.js (LTS)](https://nodejs.org/)
+- [MySQL Server](https://dev.mysql.com/downloads/)
+- [Git](https://git-scm.com/)
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## ⬇️ โคลนโปรเจกต์
+```bash
+git clone <repo-url>
+cd "Vote Project"
+```
 
-### `npm run build`
+---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🟦 ติดตั้ง & รัน Backend
+ไปที่โฟลเดอร์ `backend` แล้วติดตั้งแพ็กเกจ
+```bash
+cd backend
+npm install
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### สร้างไฟล์ `.env`
+สร้างไฟล์ `backend/.env` แล้วใส่ค่าตัวอย่างนี้ (เปลี่ยนตามเครื่องคุณ)
+```env
+PORT=5000
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+DB_NAME=vote_db
+JWT_SECRET=your_secret_key
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### เตรียมฐานข้อมูล
+1) เปิด MySQL แล้วสร้างฐานข้อมูลและตารางต่าง ๆ โดยนำเข้าไฟล์ `vote_db.sql`
+```bash
+# วิธีที่ 1: ผ่าน MySQL CLI
+mysql -u root -p < vote_db.sql
 
-### `npm run eject`
+# วิธีที่ 2: เข้า mysql ก่อน
+mysql -u root -p
+CREATE DATABASE IF NOT EXISTS vote_db DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE vote_db;
+SOURCE vote_db.sql;
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+> ถ้าคุณสร้าง DB เองแล้ว ให้ปรับชื่อ DB ให้ตรงกับ `DB_NAME` ใน `.env`
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### รัน Backend
+```bash
+# โหมดพัฒนา (รีสตาร์ทอัตโนมัติ)
+npm run dev
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+# โหมดปกติ
+npm start
+```
+Backend จะรันที่ `http://localhost:5000`
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+---
 
-## Learn More
+## 🟩 ติดตั้ง & รัน Frontend
+ไปที่โฟลเดอร์ `frontend` แล้วติดตั้งแพ็กเกจ
+```bash
+cd ../frontend
+npm install
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### รัน Frontend
+```bash
+npm start
+```
+- Frontend จะรันที่ `http://localhost:3000`
+- มีการตั้งค่า proxy ไปที่ `http://localhost:5000` ไว้แล้ว (ดูใน `frontend/package.json`)
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+> คำสั่ง `npm start` ของ frontend จะรัน **Tailwind watcher** และ **React dev server** พร้อมกันด้วย `concurrently`
 
-### Code Splitting
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## 🧰 สคริปต์ที่ใช้บ่อย
 
-### Analyzing the Bundle Size
+### Backend
+- `npm run dev` – รันด้วย nodemon (เหมาะสำหรับพัฒนา)
+- `npm start` – รันปกติด้วย Node
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Frontend
+- `npm start` – รันโหมดพัฒนา
+- `npm run build` – สร้างไฟล์พร้อม deploy
 
-### Making a Progressive Web App
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 🗄️ สคีมาฐานข้อมูล (สรุป)
+มีตารางหลัก ๆ ดังนี้
+- `users` – ผู้ใช้ระบบ (นักศึกษา/แอดมิน)
+- `elections` – ข้อมูลการเลือกตั้ง
+- `candidates` – ผู้สมัครในแต่ละการเลือกตั้ง
+- `votes` – บันทึกการโหวต (1 คนโหวตได้ 1 ครั้งต่อการเลือกตั้ง)
 
-### Advanced Configuration
+> โครงสร้างเต็ม ๆ อยู่ในไฟล์ `schema.sql`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+---
 
-### Deployment
+## 🔐 หมายเหตุเรื่องความปลอดภัย
+- อย่า commit ไฟล์ `.env` ขึ้น Git
+- ถ้าต้องสร้างผู้ใช้ admin เริ่มต้น ควร **แฮชรหัสผ่านด้วย bcrypt** ก่อนค่อย INSERT
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+---
 
-### `npm run build` fails to minify
+## 🧪 ตัวอย่างเรียก API
+ตัวอย่าง (ปรับ URL และ Token ตามจริง)
+```bash
+# Login
+curl -X POST http://localhost:5000/api/auth/login   -H "Content-Type: application/json"   -d '{"studentId":"65000001","password":"your_password"}'
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+# เรียกดูรายการเลือกตั้ง (public)
+curl http://localhost:5000/api/elections
+
+# โหวต (ต้องมี Bearer Token หลังจาก login)
+curl -X POST http://localhost:5000/api/votes   -H "Content-Type: application/json"   -H "Authorization: Bearer <YOUR_JWT_TOKEN>"   -d '{"election_id":1,"candidate_id":3}'
+```
+
+---
+
+## ❓ Troubleshooting
+- ถ้ารัน Backend แล้ว error เรื่องเวอร์ชัน Node ให้ใช้ Node **18+**
+- เช็คพอร์ตที่ชนกัน (Frontend: 3000, Backend: 5000)
+- ถ้าต่อ DB ไม่ได้ ให้ตรวจสอบ host/user/password/สิทธิ์ของ user ใน MySQL
+
+---
+
+## 📜 License
+MIT
