@@ -16,8 +16,13 @@ export default function UserTable({ users, rowsPerPage, onEdit, onDelete }) {
                     </tr>
                 </thead>
                 <tbody>
+
                     {users.slice(0, rowsPerPage).map((user, index) => (
-                        <tr key={index} className="border-t hover:bg-gray-50">
+                        // <tr key={index} className="border-t hover:bg-gray-50">
+                        <tr
+                            key={index}
+                            className={`border-t hover:bg-gray-200  ${index % 2 === 0 ? "bg-white " : "bg-purple-100"}`}
+                        >
                             <td className="p-2">{user.roles}</td>
                             <td className="p-2">{user.student_id}</td>
                             <td className="p-2">{user.first_name} {user.last_name}</td>

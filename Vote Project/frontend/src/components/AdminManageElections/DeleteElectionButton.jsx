@@ -25,11 +25,15 @@ export default function DeleteElectionButton({ electionId, onDeleted }) {
             Swal.fire("ลบรายการเลือกตั้งสำเร็จ!", "", "success");
         }
         try {
-            const token = localStorage.getItem("token");
-            const data = await apiFetch(`http://localhost:5000/api/elections/${electionId}`, {
+            // const token = localStorage.getItem("token");
+            // const data = await apiFetch(`http://localhost:5000/api/elections/${electionId}`, {
+            //     method: "DELETE",
+            //     headers: { Authorization: `Bearer ${token}` },
+            // });
+            const data = await apiFetch(`/api/elections/${electionId}`, {
                 method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
             });
+
 
             // const data = await res.json();
             if (!data) return;

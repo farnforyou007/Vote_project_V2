@@ -23,11 +23,15 @@ function toMs(d) {
  * nowTH: ให้สอดคล้องเวลาไทย
  * หมายเหตุ: ถ้าคุณตั้ง TZ=Asia/Bangkok ใน env ของ Node ได้ ยิ่งดี (จะไม่ต้องชดเชย +7 เอง)
  */
+// function nowTH() {
+//   const nowUtc = Date.now();
+//   // ถ้าเครื่องคุณรันใน UTC: บวก +7h / ถ้าตั้งเครื่องแล้วเป็น +7 อยู่ จะได้เวลาคลาดเคลื่อนเล็กน้อย
+//   // ใช้วิธีนี้แบบ conservative: แปลงเป็น “ประมาณไทย” ด้วย offset คงที่
+//   return new Date(nowUtc + TH_OFFSET_MS);
+// }
 function nowTH() {
-  const nowUtc = Date.now();
-  // ถ้าเครื่องคุณรันใน UTC: บวก +7h / ถ้าตั้งเครื่องแล้วเป็น +7 อยู่ จะได้เวลาคลาดเคลื่อนเล็กน้อย
-  // ใช้วิธีนี้แบบ conservative: แปลงเป็น “ประมาณไทย” ด้วย offset คงที่
-  return new Date(nowUtc + TH_OFFSET_MS);
+  // Node runtime อยู่ใน Asia/Bangkok อยู่แล้ว
+  return new Date();
 }
 
 function isBetween(t, start, end) {

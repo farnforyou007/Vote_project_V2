@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import Header from "./components/Header";
+import Header from "../components/Header";
 import { useNavigate } from "react-router-dom";
 // import { FaArrowLeft } from "react-icons/fa";
-import { apiFetch } from "./utils/apiFetch";
-import { formatDateTime } from "./utils/dateUtils";
-import { translateStatus } from "./utils/electionStatus"
+import { apiFetch } from "../utils/apiFetch";
+import { formatDateTime } from "../utils/dateUtils";
+import { translateStatus } from "../utils/electionStatus"
 import Swal from "sweetalert2";
 
 export default function ElectionDetail() {
@@ -14,22 +14,33 @@ export default function ElectionDetail() {
     const [election, setElection] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const studentName = localStorage.getItem("studentName") || "";
-    const roles = JSON.parse(localStorage.getItem("userRoles") || "[]");
-    const isLoggedIn = !!studentName;
+    // const studentName = localStorage.getItem("studentName") || "";
+    // const roles = JSON.parse(localStorage.getItem("userRoles") || "[]");
+    // const isLoggedIn = !!studentName;
+    const [me, setMe] = useState(null);
+    const [roles, setRoles] = useState([]);
+    const isLoggedIn = !!me;
+    const studentName = me ? `${me.first_name} ${me.last_name}` : "";
+
     const [votedElections, setVotedElections] = useState([]);
 
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const token = localStorage.getItem("token");
-                const data = await apiFetch(`http://localhost:5000/api/elections/${id}`, {
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`
-                    }
-                });
+                // const token = localStorage.getItem("token");
+                // const data = await apiFetch(`http://localhost:5000/api/elections/${id}`, {
+                //     headers: {
+                //         "Content-Type": "application/json",
+                //         Authorization: `Bearer ${token}`
+                //     }
+                // });
+                const meRes = await apiFetch("http://localhost:5000/api/users/me");
+                if (meRes?.success) {
+                    setMe(meRes.user);
+                    setRoles(meRes.user.roles || []);
+                }
+                const data = await apiFetch(`http://localhost:5000/api/elections/${id}`);
                 // const data = await res.json();
                 if (!data) return;
 
@@ -51,11 +62,12 @@ export default function ElectionDetail() {
     }, [id]);
 
     const handleVoteClick = async (electionId) => {
-        const token = localStorage.getItem('token');
-        // เช็คสิทธิ์โหวตก่อน
-        const eligibilityData = await apiFetch(`http://localhost:5000/api/eligibility/${electionId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
+        // const token = localStorage.getItem('token');
+        // // เช็คสิทธิ์โหวตก่อน
+        // const eligibilityData = await apiFetch(`http://localhost:5000/api/eligibility/${electionId}`, {
+        //     headers: { Authorization: `Bearer ${token}` },
+        // });
+        const eligibilityData = await apiFetch(`http://localhost:5000/api/eligibility/${electionId}`);
         if (!eligibilityData) return;
 
         if (!eligibilityData.success || !eligibilityData.eligible) {
@@ -73,6 +85,15 @@ export default function ElectionDetail() {
         // navigate(`/election/${electionId}/vote`);
     };
 
+    const html = ((election && election.description) ? election.description : "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")   // **หนา**
+        .replace(/_(.+?)_/g, "<em>$1</em>")                 // _เอียง_
+        .replace(/^## (.+)$/gm, "<span class='font-semibold'>$1</span>")
+        .replace(/^- (.+)$/gm, "• $1");
+
     if (loading) return <p className="p-8">กำลังโหลดข้อมูล...</p>;
     if (!election) return <p className="p-8">ไม่พบข้อมูลการเลือกตั้ง</p>;
 
@@ -89,27 +110,23 @@ export default function ElectionDetail() {
                     alt="election"
                     className="w-full h-128 object-cover rounded mb-4"
                 />
-                <div className="h-[4.5rem] overflow-hidden">
-                    <p className="text-sm text-gray-700 line-clamp-2 break-all">
+                {/* <div className="h-[4.5rem] overflow-hidden"> */}
+                {/* <div> */}
+                {/* <p className="text-sm text-gray-700 line-clamp-2 break-all">
+                        {election.description}
+                    </p> */}
+                {/* <p className="whitespace-pre-line leading-relaxed">
+                        {election.description}
+                    </p> */}
+                {/* <p className="whitespace-pre-wrap break-words leading-relaxed">
                         {election.description}
                     </p>
-                </div>
-                {/* <p className="text-sm">
-                    <strong>วันที่เปิดรับสมัคร:</strong>{" "}
-                    {formatDateTime(election.registration_start)}
-                </p>
-                <p className="text-sm">
-                    <strong>วันที่สิ้นสุดรับสมัคร:</strong>{" "}
-                    {formatDateTime(election.registration_end)}
-                </p>
-                <p className="text-sm">
-                    <strong>วันที่เริ่มลงคะแนน:</strong>{" "}
-                    {formatDateTime(election.start_date)}
-                </p>
-                <p className="text-sm">
-                    <strong>วันที่สิ้นสุดการลงคะแนน:</strong>{" "}
-                    {formatDateTime(election.end_date)}
-                </p> */}
+                </div> */}
+
+                <div
+                    className="leading-relaxed whitespace-pre-wrap break-words"
+                    dangerouslySetInnerHTML={{ __html: html }}
+                />
 
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-sm border-t pt-4">
                     <div>

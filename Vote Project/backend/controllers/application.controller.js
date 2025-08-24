@@ -2,12 +2,21 @@ const db = require('../models/db');
 const jwt = require('jsonwebtoken');
 
 
-
+// สมัครผู้สมัคร
+// POST /api/applications
 exports.applyCandidate = (req, res) => {
-    const { user_id, election_id, policy } = req.body;
-    const photoFile = req.file;
+    // const { user_id, election_id, policy } = req.body;
+    // // const photoFile = req.file;
+    // const photoFile = req.file ? req.file.path : null;
 
-    if (!user_id || !election_id || !policy || !imageFile) {
+    // if (!user_id || !election_id || !policy || !imageFile) {
+    //     return res.status(400).json({ success: false, message: 'ข้อมูลไม่ครบถ้วน' });
+    // }
+
+    const { user_id, election_id, policy } = req.body;
+    const photoFile = req.file; // multersharp ใส่ req.file.filename, req.file.path ให้แล้ว
+
+    if (!user_id || !election_id || !policy || !photoFile) {
         return res.status(400).json({ success: false, message: 'ข้อมูลไม่ครบถ้วน' });
     }
 
@@ -25,7 +34,7 @@ exports.applyCandidate = (req, res) => {
             return res.status(403).json({ success: false, message: "คุณไม่มีสิทธิ์สมัครในรายการนี้" });
         }
 
-        const photoPath = `/uploads/candidates/${photoFile.filename}`;
+        const photoPath = req.file.path; // <-- path ที่เรา set ใน resizeCandidatePhoto
 
         const checkDuplicateSQL = `
             SELECT * FROM applications WHERE user_id = ? AND election_id = ?
@@ -234,7 +243,7 @@ exports.getCandidatesByElection = (req, res) => {
         const processed = results.map((r) => ({
             ...r,
             image_url: r.image_url || "",
-            policy: r.policy || "-",
+            getCandidatesByElection: r.policy || "-",
             reviewer_name: r.reviewer_name || "-",
             application_number: r.application_number || "-",
             department_name: r.department_name || "-",
@@ -257,7 +266,7 @@ exports.getMyApplication = (req, res) => {
     const userId = req.user.user_id;
 
     const sql = `
-    SELECT 
+    SELECT  
       a.*,
       e.election_name,
       e.start_date,
@@ -361,3 +370,13 @@ exports.updateMyApplication = (req, res) => {
     });
 };
 
+// router.get("/check/:electionId", auth, (req, res) => {
+//     const electionId = req.params.electionId;
+//     const userId = req.user.user_id;
+
+//     const sql = "SELECT 1 FROM applications WHERE election_id=? AND user_id=? LIMIT 1";
+//     db.query(sql, [electionId, userId], (err, rows) => {
+//         if (err) return res.status(500).json({ success: false, message: "DB error" });
+//         res.json({ success: true, applied: rows.length > 0 });
+//     });
+// });

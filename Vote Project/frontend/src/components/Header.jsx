@@ -5,89 +5,83 @@ import { FaAddressCard } from "react-icons/fa";
 import { MdHowToVote } from "react-icons/md";
 import { IoHomeSharp } from "react-icons/io5";
 import { IoLogOut, IoLogIn } from "react-icons/io5";
-import { FaClipboardCheck } from "react-icons/fa";
+import { FaClipboardCheck, FaUserCog } from "react-icons/fa";
 import { FaEye } from "react-icons/fa";
 import { apiFetch } from "../utils/apiFetch";
-
-export default function Header({ studentName }) {
+import { tokenService } from "../utils/tokenService";
+import { MdDashboardCustomize } from "react-icons/md";
+import { FaGear } from "react-icons/fa6";
+export default function Header() {
     const [menuOpen, setMenuOpen] = useState(false);
-    const isLoggedIn = !!studentName;
+    // const isLoggedIn = !!studentName;
+    const [me, setMe] = useState(null);
+    const isLoggedIn = !!me;
     const location = useLocation();
     const isLoginPage = location.pathname === "/login";
     const [hasApplied, setHasApplied] = useState(false);
 
-    const roles = JSON.parse(localStorage.getItem("userRoles") || "[]");
-    const [selectedRole, setSelectedRole] = useState(() => {
-        return localStorage.getItem("selectedRole") || "";
-    });
-
+    // const roles = JSON.parse(localStorage.getItem("userRoles") || "[]");
+    // const [selectedRole, setSelectedRole] = useState(() => {
+    //     return localStorage.getItem("selectedRole") || "";
+    // });
+    const [roles, setRoles] = useState([]);
+    const [selectedRole, setSelectedRole] = useState("");
 
     useEffect(() => {
-        const roleInStorage = localStorage.getItem("selectedRole");
-        if (!roleInStorage && roles.length > 0) {
-            // ถ้ายังไม่มี selectedRole ให้ตั้งค่าตัวแรกใน roles
-            localStorage.setItem("selectedRole", roles[0]);
-            setSelectedRole(roles[0]);
-        } else {
-            setSelectedRole(roleInStorage || "");
-        }
+        // const roleInStorage = localStorage.getItem("selectedRole");
+        // if (!roleInStorage && roles.length > 0) {
+        //     // ถ้ายังไม่มี selectedRole ให้ตั้งค่าตัวแรกใน roles
+        //     localStorage.setItem("selectedRole", roles[0]);
+        //     setSelectedRole(roles[0]);
+        // } else {
+        //     setSelectedRole(roleInStorage || "");
+        // }
+        // const updateRole = () => {
+        //     const role = localStorage.getItem("selectedRole") || "";
+        //     setSelectedRole(role);
+        // };
+
+        // window.addEventListener("role-changed", updateRole);
+
+        // // initial load
+        // updateRole();
+
+        // return () => {
+        //     window.removeEventListener("role-changed", updateRole);
+        // };
+        (async () => {
+            const meRes = await apiFetch("http://localhost:5000/api/users/me");
+            if (meRes?.success) {
+                setMe(meRes.user);
+                setRoles(meRes.user.roles || []);
+                setSelectedRole(sessionStorage.getItem("selectedRole") || (meRes.user.roles?.[0] || ""));
+            }
+        })();
         const updateRole = () => {
-            const role = localStorage.getItem("selectedRole") || "";
-            setSelectedRole(role);
+            setSelectedRole(sessionStorage.getItem("selectedRole") || "");
         };
-
         window.addEventListener("role-changed", updateRole);
-
-        // initial load
-        updateRole();
-
-        return () => {
-            window.removeEventListener("role-changed", updateRole);
-        };
+        return () => window.removeEventListener("role-changed", updateRole);
     }, []);
 
 
-    // useEffect(() => {
-    //     if (selectedRole === "นักศึกษา") {
-    //         fetch("/api/applications/check", {
-    //             headers: {
-    //                 Authorization: `Bearer ${localStorage.getItem("token")}`
-    //             }
-    //         })
-    //             .then(res => res.json())
-    //             .then(data => {
-    //                 setHasApplied(data.hasApplied);
-    //             })
-    //             .catch(err => {
-    //                 console.error("❌ ตรวจสอบใบสมัครผิดพลาด:", err);
-    //             });
-    //     }
-    // }, [selectedRole]);
-
-    // useEffect(() => {
-    //     const checkApplicationStatus = async () => {
-    //         if (selectedRole === "นักศึกษา") {
-    //             const data = await apiFetch("/api/applications/check", {
-    //                 headers: {
-    //                     Authorization: `Bearer ${localStorage.getItem("token")}`
-    //                 }
-    //             });
-    //             if (!data) return; // popup + redirect ถ้า token หมดอายุ
-    //             setHasApplied(data.hasApplied);
-    //         }
-    //     };
-    //     checkApplicationStatus();
-    // }, [selectedRole]);
-
     useEffect(() => {
+        // const checkApplicationStatus = async () => {
+        //     const token = localStorage.getItem("token");
+        //     if (!token || selectedRole !== "นักศึกษา") return; // เพิ่มเช็ค token
+        //     const data = await apiFetch("/api/applications/check", {
+        //         headers: {
+        //             Authorization: `Bearer ${token}`
+        //         }
+        //     });
+        //     if (!data) return;
+        //     setHasApplied(data.hasApplied);
+        // };
+        // checkApplicationStatus();
         const checkApplicationStatus = async () => {
-            const token = localStorage.getItem("token");
-            if (!token || selectedRole !== "นักศึกษา") return; // เพิ่มเช็ค token
-            const data = await apiFetch("/api/applications/check", {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            if (selectedRole !== "นักศึกษา") return;
+            const data = await apiFetch("/api/applications/check");
+            // if (data) setHasApplied(data.hasApplied);
             if (!data) return;
             setHasApplied(data.hasApplied);
         };
@@ -98,6 +92,10 @@ export default function Header({ studentName }) {
 
     const handleLogout = () => {
         localStorage.clear();
+        // sessionStorage.removeItem("token");
+        tokenService.remove();
+        setRoles([]);
+        setSelectedRole("");
         window.location.href = "/";
     };
     // useEffect(() => {
@@ -143,7 +141,8 @@ export default function Header({ studentName }) {
                 {/* ขวา */}
                 <div className="flex items-center space-x-1">
                     <span className="text-sm md:text-base truncate max-w-[80px] md:max-w-none text-black">
-                        {studentName || "ผู้ใช้งาน"}
+                        {/* {studentName || "ผู้ใช้งาน"} */}
+                        {me ? ` ${me.first_name} ${me.last_name}` : "ชื่อผู้ใช้งาน "}
                     </span>
                     <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center">
                         <svg
@@ -187,7 +186,9 @@ export default function Header({ studentName }) {
                 <ul className="p-4 space-y-2">
                     <MenuItem href="/elections" label="หน้าหลัก" icon={<IoHomeSharp className="text-xl text-purple-700" />} />
 
-                    {!studentName && (
+                    {/* {!studentName && ( */}
+                    {!me && (
+
                         <MenuItem
                             href="/login"
                             label="เข้าสู่ระบบ"
@@ -200,7 +201,7 @@ export default function Header({ studentName }) {
                     {selectedRole === "นักศึกษา" && (
                         <>
                             <MenuItem
-                                href="/my-votes"
+                                href="/my-votes-history"
                                 label="ประวัติการใช้สิทธิ์"
                                 icon={<MdHowToVote className="text-2xl text-purple-700" />}
                             />
@@ -270,9 +271,14 @@ export default function Header({ studentName }) {
                         </>
                     )}
 
-
                     {roles.includes("ผู้ดูแล") && (
                         <>
+                            <MenuItem
+                                href="/admin/dash-board"
+                                icon={<MdDashboardCustomize className="text-xl text-purple-700" />}
+                                label="แดชบอร์ด"
+
+                            />
                             <MenuItem
                                 href="/profile"
                                 icon={<FaAddressCard className="text-xl text-purple-700" />}
@@ -282,13 +288,19 @@ export default function Header({ studentName }) {
                             <MenuItem
                                 href="/admin/manage-users"
                                 label="จัดการผู้ใช้"
-                                icon="👤"
+                                icon={<FaUserCog className="text-xl text-purple-700" />}
+
+
                             />
                             <MenuItem
                                 href="/admin/elections"
-                                label="จัดการการเลือกตั้ง"
-                                icon="⚙️"
+                                label="จัดการรายการเลือกตั้ง"
+                                icon={<FaGear  className="text-xm text-purple-700" />}
+
                             />
+
+
+
                         </>
                     )}
 

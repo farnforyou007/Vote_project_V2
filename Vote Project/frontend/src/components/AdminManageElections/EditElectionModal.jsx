@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import Swal from 'sweetalert2';
 import { apiFetch } from "../../utils/apiFetch";
+import DescriptionEditor from "./DescriptionEditor";
+import { formatForInputDateTime, formatForBackend } from "../../utils/dateUtils"
+
 
 export default function EditElectionModal({ election, onClose, onSave }) {
   const [form, setForm] = useState({
@@ -16,22 +19,20 @@ export default function EditElectionModal({ election, onClose, onSave }) {
     is_hidden: false
   });
   const [imageFile, setImageFile] = useState(null);
-  // const [previewUrl, setPreviewUrl] = useState(null);
 
   const [preview, setPreview] = useState(null);
-
-  // const [electionToEdit, setElectionToEdit] = useState(null);
+  const [errors, setErrors] = useState({}); 
 
   useEffect(() => {
     if (election) {
       setForm({
         election_name: election.election_name || "",
         description: election.description || "",
-        registration_start: election.registration_start?.slice(0, 16) || "",
-        registration_end: election.registration_end?.slice(0, 16) || "",
-        start_date: election.start_date?.slice(0, 16) || "",
-        end_date: election.end_date?.slice(0, 16) || "",
-        image_url: election.image_url || election.image_path || "", // ✅ แก้ตรงนี้
+        registration_start: formatForInputDateTime(election.registration_start) || "",
+        registration_end: formatForInputDateTime(election.registration_end) || "",
+        start_date: formatForInputDateTime(election.start_date) || "",
+        end_date: formatForInputDateTime(election.end_date) || "",
+        image_url: election.image_url || election.image_path || "",
         // status: election.status || "registration"   // << เพิ่มตรงนี้
         manual_override: election.manual_override || "AUTO",
         status_note: election.status_note || "",
@@ -66,10 +67,47 @@ export default function EditElectionModal({ election, onClose, onSave }) {
     }
   };
 
+  const setField = (name, value) =>
+    setForm((prev) => ({ ...prev, [name]: value }));
+
+  const validate = () => {
+    const e = {};
+    const {
+      election_name,
+      registration_start,
+      registration_end,
+      start_date,
+      end_date,
+    } = form;
+
+    if (!election_name.trim())
+      e.election_name = "กรุณากรอกชื่อรายการเลือกตั้ง";
+    if (!registration_start)
+      e.registration_start = "กรุณาเลือกวัน-เวลาเริ่มรับสมัคร";
+    if (!registration_end)
+      e.registration_end = "กรุณาเลือกวัน-เวลา สิ้นสุดรับสมัคร";
+    if (!start_date) e.start_date = "กรุณาเลือกวัน-เวลาเริ่มลงคะแนน";
+    if (!end_date) e.end_date = "กรุณาเลือกวัน-เวลาสิ้นสุดลงคะแนน";
+
+    // ตรวจ logic วันเวลา (เหมือน Add)
+    if (registration_start && registration_end) {
+      if (new Date(registration_end) < new Date(registration_start)) {
+        e.registration_end = "วันสิ้นสุดรับสมัครต้องหลังจากวันเริ่มต้น";
+      }
+    }
+    if (start_date && end_date) {
+      if (new Date(end_date) < new Date(start_date)) {
+        e.end_date = "วันสิ้นสุดลงคะแนนต้องหลังจากวันเริ่มต้น";
+      }
+    }
+    setErrors(e);
+    return { ok: Object.keys(e).length === 0, e };
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    const { ok } = validate();
+    if (!ok) return;
     // 1) ยืนยันก่อนแก้ไข
     const result = await Swal.fire({
       title: "ยืนยันการแก้ไข?",
@@ -83,37 +121,26 @@ export default function EditElectionModal({ election, onClose, onSave }) {
     });
     if (!result.isConfirmed) return;
 
-    // 2) ตรวจสอบวันเวลา
-    const startReg = new Date(form.registration_start);
-    const endReg = new Date(form.registration_end);
-    const startVote = new Date(form.start_date);
-    const endVote = new Date(form.end_date);
-
-    if (startReg >= endReg) {
-      toast.error("วันเริ่มรับสมัครต้องมาก่อนวันสิ้นสุดรับสมัคร");
-      return;
-    }
-    if (startVote >= endVote) {
-      toast.error("วันเริ่มลงคะแนนต้องมาก่อนวันสิ้นสุดลงคะแนน");
-      return;
-    }
-
     try {
-      const token = localStorage.getItem("token");
+      // const token = localStorage.getItem("token");
 
       // 3) อัปเดตข้อมูลทั่วไป (PUT) — ไม่ต้องส่ง status แล้ว
       const formData = new FormData();
       formData.append("election_name", form.election_name);
       formData.append("description", form.description);
-      formData.append("registration_start", form.registration_start);
-      formData.append("registration_end", form.registration_end);
-      formData.append("start_date", form.start_date);
-      formData.append("end_date", form.end_date);
+      // formData.append("registration_start", form.registration_start);
+      // formData.append("registration_end", form.registration_end);
+      // formData.append("start_date", form.start_date);
+      // formData.append("end_date", form.end_date);
+      formData.append("registration_start", formatForBackend(form.registration_start));
+      formData.append("registration_end", formatForBackend(form.registration_end));
+      formData.append("start_date", formatForBackend(form.start_date));
+      formData.append("end_date", formatForBackend(form.end_date));
       if (imageFile) formData.append("image", imageFile);
 
       const putData = await apiFetch(`http://localhost:5000/api/elections/${election.election_id}`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}` }, // ห้ามใส่ Content-Type เอง
+        // headers: { Authorization: `Bearer ${token}` }, // ห้ามใส่ Content-Type เอง
         body: formData,
       });
       // const putData = await putRes.json();
@@ -137,7 +164,7 @@ export default function EditElectionModal({ election, onClose, onSave }) {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            // Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             manual_override: form.manual_override,
@@ -145,7 +172,7 @@ export default function EditElectionModal({ election, onClose, onSave }) {
           }),
         });
         // const patchData = await patchRes.json();
-        if(!patchData) return;
+        if (!patchData) return;
 
         if (!patchData.success) {
           toast.error("อัปเดตสถานะ (override) ไม่สำเร็จ");
@@ -158,11 +185,11 @@ export default function EditElectionModal({ election, onClose, onSave }) {
       if (form.is_hidden !== oldHidden) {
         const visData = await apiFetch(`http://localhost:5000/api/elections/${election.election_id}/visibility`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ is_hidden: form.is_hidden }),
         });
-        // const visData = await visRes.json();
-        if(!visData) return;
+      
+        if (!visData) return;
 
         if (!visData.success) {
           toast.error("อัปเดตการซ่อนล้มเหลว");
@@ -181,6 +208,7 @@ export default function EditElectionModal({ election, onClose, onSave }) {
       toast.error("เกิดข้อผิดพลาดจากเครือข่าย/เซิร์ฟเวอร์");
     }
   };
+
 
   if (!election || !onClose || !onSave) {
     return <div className="text-red-500 p-4">มีข้อมูลไม่ครบ (election / onClose / onSave)</div>;
@@ -202,22 +230,25 @@ export default function EditElectionModal({ election, onClose, onSave }) {
               type="text"
               name="election_name"
               value={form.election_name}
-              onChange={handleChange}
+              // onChange={handleChange}
+              onChange={(e) => setField("election_name", e.target.value)}
               className="w-full border border-purple-300 p-2 rounded"
-              required
+
             />
+            {errors.election_name && (
+              <p className="mt-1 text-xs text-red-600">
+                {errors.election_name}
+              </p>
+            )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
-            <textarea
-              name="description"
-              value={form.description}
-              onChange={handleChange}
-              className="w-full border border-purple-300 p-2 rounded"
-              rows={3}
-            />
-          </div>
+          <DescriptionEditor
+            value={form.description}
+            onChange={(v) => setField("description", v)}
+            rows={3}
+            required={false}
+            error={errors.description}
+          />
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -226,9 +257,17 @@ export default function EditElectionModal({ election, onClose, onSave }) {
                 type="datetime-local"
                 name="registration_start"
                 value={form.registration_start}
-                onChange={handleChange}
+                // onChange={handleChange}
+                onChange={(e) =>
+                  setField("registration_start", e.target.value)
+                }
                 className="w-full border border-purple-300 p-2 rounded"
               />
+              {errors.registration_start && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.registration_start}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">สิ้นสุดรับสมัคร</label>
@@ -236,9 +275,15 @@ export default function EditElectionModal({ election, onClose, onSave }) {
                 type="datetime-local"
                 name="registration_end"
                 value={form.registration_end}
-                onChange={handleChange}
+                // onChange={handleChange}
+                onChange={(e) => setField("registration_end", e.target.value)}
                 className="w-full border border-purple-300 p-2 rounded"
               />
+              {errors.registration_end && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.registration_end}
+                </p>
+              )}
             </div>
           </div>
 
@@ -249,9 +294,13 @@ export default function EditElectionModal({ election, onClose, onSave }) {
                 type="datetime-local"
                 name="start_date"
                 value={form.start_date}
-                onChange={handleChange}
+                // onChange={handleChange}
+                onChange={(e) => setField("start_date", e.target.value)}
                 className="w-full border border-purple-300 p-2 rounded"
               />
+              {errors.start_date && (
+                <p className="mt-1 text-xs text-red-600">{errors.start_date}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">สิ้นสุดลงคะแนน</label>
@@ -259,9 +308,16 @@ export default function EditElectionModal({ election, onClose, onSave }) {
                 type="datetime-local"
                 name="end_date"
                 value={form.end_date}
-                onChange={handleChange}
+                // onChange={handleChange}
+                // className="w-full border border-purple-300 p-2 rounded"
+                onChange={(e) => setField("end_date", e.target.value)}
                 className="w-full border border-purple-300 p-2 rounded"
               />
+
+              {errors.end_date && (
+                <p className="mt-1 text-xs text-red-600">{errors.end_date}</p>
+              )}
+
             </div>
           </div>
 
@@ -288,8 +344,8 @@ export default function EditElectionModal({ election, onClose, onSave }) {
               className="w-full border border-purple-300 p-2 rounded"
             />
 
-            <label 
-            className="flex items-center gap-2 mt-3"
+            <label
+              className="flex items-center gap-2 mt-3"
             >
               <input
                 type="checkbox"

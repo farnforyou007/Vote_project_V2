@@ -3,9 +3,9 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { BrowserRouter as Router, Routes, Route, Navigate, BrowserRouter } from "react-router-dom";
-import Login from "./Login";
-import ElectionList from "./ElectionList";
-import ElectionDetail from "./ElectionDetail";
+import Login from "./pages/Login";
+import ElectionList from "./pages/ElectionList";
+import ElectionDetail from "./pages/ElectionDetail";
 import AdminElectionList from "./pages/AdminElectionList";
 import AdminManageUser from "./pages/AdminManageUser";
 import ManageEligibilityPage from "./pages/AdminEligibleVoters";
@@ -14,12 +14,16 @@ import CandidateList from './components/AdminManageCandidate/ManageCandidate'
 import StudentApplicationPage from './components/Student/StudentApplicationPage'
 import CheckEligibilityPage from './components/Student/CheckEligibilityPage'
 import VotePage from './components/Student/VotePage'
+import VoteHistory from './components/Student/VoteHistory'
 import SessionGuard from "./components/SessionGuard";
+import { apiFetch } from "./utils/apiFetch";
+import AdminDashboard from "./pages/AdminDashboard";
 // import RoleGuard from './components/RoleGuard';
 function App() {
   return (
+    <div className="min-h-screen bg-purple-100">
       <Router>
-        <ToastContainer position="top-center" autoClose={3000} reverseOrder={true} />
+        <ToastContainer autoClose={3000} reverseOrder={true} />
           <SessionGuard />
             <Routes>
               {/* Redirect / ไป /login */}
@@ -30,7 +34,7 @@ function App() {
               <Route path="/profile" element={<StudentProfile />} />
               <Route path="/applicationPage" element={<StudentApplicationPage />} />
               <Route path="/check-eligibility" element={<CheckEligibilityPage />} />
-
+              <Route path="/my-votes-history" element={<VoteHistory />} />
 
         {/* <Route
           path="/profile"
@@ -50,8 +54,10 @@ function App() {
               <Route path="/admin/manage-users" element={<AdminManageUser />} />
               <Route path="/admin/election/:id/eligibility" element={<ManageEligibilityPage />} />
               <Route path="/admin/election/:id/candidate" element={<CandidateList />} />
+              <Route path="/admin/dash-board" element={<AdminDashboard />} />
           </Routes>
         </Router>
+        </div>
   );
 }
 

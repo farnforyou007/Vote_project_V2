@@ -28,36 +28,53 @@ export default function UserEditModal({
           <label htmlFor="ชื่อ" className="block text-sm font-medium text-gray-700 mb-1">ชื่อ
             <input className="mt-1 border border-purple-300 p-2 rounded w-full" name="first_name"
               value={editForm.first_name || ''} onChange={e =>
-                setEditForm(prev => ({ ...prev, first_name: e.target.value } ))}
+                setEditForm(prev => ({ ...prev, first_name: e.target.value }))}
               placeholder="ชื่อ" />
           </label>
 
           <label htmlFor="นามสกุล" className="block text-sm font-medium text-gray-700 mb-1">นามสกุล
-            <input className="mt-1 border border-purple-300 p-2 rounded w-full" name="last_name" value={editForm.last_name || ''} onChange={e => setEditForm(prev => ({ ...prev, last_name: e.target.value }))} placeholder="นามสกุล" />
+            <input className="mt-1 border border-purple-300 p-2 rounded w-full"
+              name="last_name"
+              value={editForm.last_name || ''}
+              onChange={e => setEditForm(prev => ({ ...prev, last_name: e.target.value }))}
+              placeholder="นามสกุล" />
           </label>
 
           <label htmlFor="อีเมล" className="block text-sm font-medium text-gray-700 mb-1">อีเมล
-            <input className="mt-1 border border-purple-300 p-2 rounded w-full" name="email" type="email" value={editForm.email || ''} onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))} placeholder="อีเมล" />
+            <input className="mt-1 border border-purple-300 p-2 rounded w-full"
+              name="email" type="email"
+              value={editForm.email || ''}
+              onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))} placeholder="อีเมล" />
           </label>
 
           <label htmlFor="แผนก" className="block text-sm font-medium text-gray-700 mb-1">แผนก
-            <select className="mt-1 border p-2 rounded w-full bg-violet-50 border-violet-300" value={editForm.department_id || ''} onChange={e => setEditForm(prev => ({ ...prev, department_id: parseInt(e.target.value) }))}>
+            <select className="mt-1 border p-2 rounded w-full bg-violet-50 border-violet-300"
+              value={editForm.department_id || ''}
+              onChange={e => setEditForm(prev => ({ ...prev, department_id: parseInt(e.target.value) }))}>
               <option value="">เลือกแผนก</option>
-              {departments.map(d => <option key={d.department_id} value={d.department_id}>{d.department_name}</option>)}
+              {departments.map(d =>
+                <option key={d.department_id}
+                  value={d.department_id}>{d.department_name}</option>)}
             </select>
           </label>
 
           <label htmlFor="ระดับการศึกษา" className="block text-sm font-medium text-gray-700 mb-1">ระดับการศึกษา
-            <select className="mt-1 border p-2 rounded w-full bg-violet-50 border-violet-300" value={editForm.level_id || ''} onChange={e => setEditForm(prev => ({ ...prev, level_id: parseInt(e.target.value) }))}>
+            <select className="mt-1 border p-2 rounded w-full bg-violet-50 border-violet-300"
+              value={editForm.level_id || ''}
+              onChange={e => setEditForm(prev => ({ ...prev, level_id: parseInt(e.target.value) }))}>
               <option value="">เลือกระดับชั้น</option>
-              {educationLevels.map(l => <option key={l.level_id} value={l.level_id}>{l.level_name}</option>)}
+              {educationLevels.map(l =>
+                <option key={l.level_id} value={l.level_id}>{l.level_name}</option>)}
             </select>
           </label>
 
           <label htmlFor="ปีที่" className="block text-sm font-medium text-gray-700 mb-1">ชั้นปี
-            <select className="mt-1 border p-2 rounded w-full bg-violet-50 border-violet-300" value={editForm.year_id || ''} onChange={e => setEditForm(prev => ({ ...prev, year_id: parseInt(e.target.value) }))}>
-              <option value="">เลือกชั้นปี</option>
-              {years.filter(y => !editForm.level_id || y.level_id === parseInt(editForm.level_id)).map(y => <option key={y.year_id} value={y.year_id}>{y.year_name}</option>)}
+            <select className="mt-1 border p-2 rounded w-full bg-violet-50 border-violet-300"
+              value={editForm.year_id || ''}
+                onChange={e => setEditForm(prev => ({ ...prev, year_id: parseInt(e.target.value) }))}>
+                  <option value="">เลือกชั้นปี</option>
+                    {years.filter(y => !editForm.level_id || y.level_id === parseInt(editForm.level_id)).map(y =>
+                  <option key={y.year_id} value={y.year_id}>{y.year_name}</option>)}
             </select>
           </label>
 

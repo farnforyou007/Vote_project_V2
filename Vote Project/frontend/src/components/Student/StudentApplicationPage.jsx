@@ -1,46 +1,45 @@
 import { useEffect, useState } from "react";
 import Header from "../Header";
 import ApplicationCard from "./ApplicationCard";
+import { apiFetch } from "../../utils/apiFetch";
 
 export default function StudentApplicationsPage() {
     const [applications, setApplications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [updated, setUpdated] = useState(false);
 
+    // โหลดข้อมูลใบสมัครของฉัน
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        fetch("http://localhost:5000/api/applications/my-all", {
-            headers: { Authorization: `Bearer ${token}` },
-        })
-            .then((res) => res.json())
-            .then((data) => {
+        (async () => {
+            const data = await apiFetch("http://localhost:5000/api/applications/my-all");
+            if (data?.success) {
                 setApplications(data.applications || []);
-                setLoading(false);
-            });
+            }
+            setLoading(false);
+        })();
     }, [updated]);
 
     const handleUpdate = async (application_id, policy, file) => {
-        const token = localStorage.getItem("token");
         const formData = new FormData();
         formData.append("application_id", application_id);
         formData.append("policy", policy);
         if (file) formData.append("photo", file);
 
-        const res = await fetch("http://localhost:5000/api/applications/update-my", {
+        const res = await apiFetch("http://localhost:5000/api/applications/update-my", {
             method: "PUT",
-            headers: { Authorization: `Bearer ${token}` },
             body: formData,
         });
-        const result = await res.json();
-        if (result.success) setUpdated(!updated);
+        if (res?.success) setUpdated((prev) => !prev);
     };
 
     if (loading) return <p className="p-6">กำลังโหลดข้อมูล...</p>;
 
     return (
         <>
-            <Header studentName={localStorage.getItem("studentName")} />
-            <div className="p-6 max-w-4xl mx-auto">
+            <Header /> {/* ไม่ต้องส่ง studentName แล้ว */}
+            <div className="p-6 max-w-4xl mx-auto  bg-purple-100">
+            {/* <div className="max-w-4xl mx-auto bg-purple-100 p-8"> */}
+
                 <h1 className="text-xl font-bold mb-6">รายการใบสมัครของคุณ</h1>
 
                 {applications.length === 0 ? (

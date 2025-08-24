@@ -5,8 +5,10 @@ import { toast } from "react-toastify";
 import { apiFetch } from "../../utils/apiFetch";
 
 export default function StudentProfile() {
-    const studentName = localStorage.getItem("studentName") || "";
-    const roles = JSON.parse(localStorage.getItem("userRoles") || "[]");
+    // const studentName = localStorage.getItem("studentName") || "";
+    // const roles = JSON.parse(localStorage.getItem("userRoles") || "[]");
+    const [studentName, setStudentName] = useState("");
+    const [roles, setRoles] = useState([]);
     const [hasChanged, setHasChanged] = useState(false);
 
     const [form, setForm] = useState({
@@ -22,40 +24,57 @@ export default function StudentProfile() {
     });
 
     const [showPasswordFields, setShowPasswordFields] = useState(false);
-    const [selectedRole, setSelectedRole] = useState(() => {
-        return localStorage.getItem("selectedRole") || roles[0] || "";
-    });
+    // const [selectedRole, setSelectedRole] = useState(() => {
+    //     return localStorage.getItem("selectedRole") || roles[0] || "";
+    // });
+    const [selectedRole, setSelectedRole] = useState("");
 
-    const initialEmail = useRef(localStorage.getItem('email') || '');
+    // const initialEmail = useRef(localStorage.getItem('email') || '');
+    const initialEmail = useRef('');
+
 
     // useEffect(() => {
-    //     setForm((prev) => ({
-    //         ...prev,
+    //     setForm({
     //         student_id: localStorage.getItem('student_id') || '',
     //         first_name: localStorage.getItem('first_name') || '',
     //         last_name: localStorage.getItem('last_name') || '',
     //         email: localStorage.getItem('email') || '',
     //         department: localStorage.getItem('department') || '',
     //         year_level: localStorage.getItem('year_level') || '',
-    //     }));
-    //     const emailChanged = form.email !== initialEmail.current;
-    //     const passwordChanged = showPasswordFields && form.current_password && form.new_password;
-    //     setHasChanged(emailChanged || passwordChanged);
-    // }, [form.email, form.current_password, form.new_password, showPasswordFields]);
+    //         current_password: '',
+    //         new_password: '',
+    //         confirm_password: ''
+    //     });
+    // }, []);
 
     useEffect(() => {
-        setForm({
-            student_id: localStorage.getItem('student_id') || '',
-            first_name: localStorage.getItem('first_name') || '',
-            last_name: localStorage.getItem('last_name') || '',
-            email: localStorage.getItem('email') || '',
-            department: localStorage.getItem('department') || '',
-            year_level: localStorage.getItem('year_level') || '',
-            current_password: '',
-            new_password: '',
-            confirm_password: ''
-        });
+        (async () => {
+            const data = await apiFetch("http://localhost:5000/api/users/me");
+            if (!data?.success) return;
+            const u = data.user;
+            setForm(f => ({
+                ...f,
+                student_id: u.student_id || '',
+                first_name: u.first_name || '',
+                last_name: u.last_name || '',
+                email: u.email || '',
+                department: u.department || '',
+                year_level: u.year_level || '',
+                current_password: '',
+                new_password: '',
+                confirm_password: ''
+            }));
+            setStudentName(`${u.first_name ?? ""} ${u.last_name ?? ""}`.trim());
+            setRoles(u.roles || []);
+            // setSelectedRole((u.roles && u.roles[0]) || "");
+            const saved = sessionStorage.getItem("selectedRole") || localStorage.getItem("selectedRole");
+            const initialRole = (saved && (u.roles || []).includes(saved)) ? saved : ((u.roles && u.roles[0]) || "");
+            setSelectedRole(initialRole);
+            initialEmail.current = u.email || '';
+        })();
     }, []);
+
+
     useEffect(() => {
         const emailChanged = form.email !== initialEmail.current;
         const passwordChanged = showPasswordFields && form.current_password && form.new_password;
@@ -108,7 +127,7 @@ export default function StudentProfile() {
         if (!result.isConfirmed) return;
 
         // ✅ ส่งข้อมูลจริง
-        const token = localStorage.getItem('token');
+        // const token = localStorage.getItem('token');
         const payload = { email: form.email };
         if (showPasswordFields && form.current_password && form.new_password) {
             payload.current_password = form.current_password;
@@ -117,17 +136,17 @@ export default function StudentProfile() {
 
         const data = await apiFetch(`http://localhost:5000/api/users/update-email-password`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
+            // headers: {
+            //     'Content-Type': 'application/json',
+            //     Authorization: `Bearer ${token}`,
+            // },
             body: JSON.stringify(payload),
         });
 
         // const data = await res.json();
 
-        if(!data) return;
-        
+        if (!data) return;
+
         if (data.success) {
             // 🎉 แจ้งว่าอัปเดตสำเร็จหลังจากยืนยัน
             await Swal.fire('สำเร็จ', 'อัปเดตข้อมูลเรียบร้อยแล้ว', 'success');
@@ -164,11 +183,22 @@ export default function StudentProfile() {
                                 //     // localStorage.setItem("selectedRole", e.target.value);
                                 //     // window.dispatchEvent(new Event("role-changed")); // 🔔 แจ้งให้ Header รู้
                                 // }
+
+                                // onChange={(e) => {
+                                //     const newRole = e.target.value;
+                                //     setSelectedRole(newRole);
+                                //     localStorage.setItem("selectedRole", newRole);
+                                //     window.dispatchEvent(new Event("role-changed")); // แจ้ง Header
+                                //     toast.success(`เปลี่ยนบทบาทเป็น "${newRole}" แล้ว`);
+                                // }}
+
+                                // เวลาเลือก role (เก็บชั่วคราวใน sessionStorage ถ้าจำเป็น)
                                 onChange={(e) => {
                                     const newRole = e.target.value;
                                     setSelectedRole(newRole);
+                                    sessionStorage.setItem("selectedRole", newRole);
                                     localStorage.setItem("selectedRole", newRole);
-                                    window.dispatchEvent(new Event("role-changed")); // แจ้ง Header
+                                    window.dispatchEvent(new Event("role-changed"));
                                     toast.success(`เปลี่ยนบทบาทเป็น "${newRole}" แล้ว`);
                                 }}
 
@@ -183,7 +213,7 @@ export default function StudentProfile() {
                         </div>
                     ) : (
                         <div className="mb-4">
-                            <label className="block font-medium mb-1">บทบาทของคุณ:</label>
+                            <label className="block font-medium mb-1">บทบาทของคุณ: </label>
                             <input value={roles[0]} readOnly className="w-full bg-gray-100 p-2 rounded" />
                         </div>
                     )}

@@ -21,42 +21,77 @@ exports.refreshToken = (req, res) => {
 };
 
 
-// exports.login = async (req, res) => {
-//     const { student_id, password } = req.body;
-//     if (!student_id || !password) {
-//         return res.status(400).json({ success: false, message: 'รหัสนักศึกษาหรือรหัสผ่านว่าง' });
-//     }
+// GET /api/users/me
+// exports.getProfile = (req, res) => {
+//     const user_id = req.user.user_id; // มาจาก auth middleware (ต้องมี)
 //     const sql = `
-//     SELECT u.*, GROUP_CONCAT(r.role_name) AS roles
-//     FROM Users u
-//     LEFT JOIN User_Roles ur ON u.user_id = ur.user_id
-//     LEFT JOIN Role r ON ur.role_id = r.role_id
-//     WHERE u.student_id = ? GROUP BY u.user_id
+//     SELECT
+//         u.student_id, u.first_name, u.last_name, u.email,
+//         d.department_name AS department,
+//         y.year_name AS year_level,
+//         GROUP_CONCAT(r.role_name) AS roles
+//     FROM users u
+//     LEFT JOIN department d ON u.department_id = d.department_id
+//     LEFT JOIN year_levels y ON u.year_id = y.year_id
+//     LEFT JOIN user_roles ur ON u.user_id = ur.user_id
+//     LEFT JOIN role r ON ur.role_id = r.role_id
+//     WHERE u.user_id = ?
+//     GROUP BY u.user_id
 //     `;
-//     db.query(sql, [student_id], async (err, results) => {
-//         if (err) return res.status(500).json({ success: false });
-//         if (!results.length) return res.status(401).json({ success: false, message: 'ไม่พบผู้ใช้งาน' });
-//         const user = results[0];
-//         const match = await bcrypt.compare(password, user.password_hash);
-//         if (!match) return res.status(401).json({ success: false, message: 'รหัสผ่านไม่ถูกต้อง' });
-
-//         const payload = {
-//             user_id: user.user_id,
-//             student_id: user.student_id,
-//             roles: user.roles.split(',')
-//         };
-
-//         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
-//         console.log("Password Match?", match);
-
+//     db.query(sql, [user_id], (err, results) => {
+//         if (err) return res.status(500).json({ success: false, message: "DB Error" });
+//         if (!results.length) return res.status(404).json({ success: false, message: "User not found" });
+//         const row = results[0];
 //         res.json({
 //             success: true,
-//             student_name: user.first_name + ' ' + user.last_name,
-//             roles: payload.roles,
-//             token
+//             user: {
+//                 student_id: row.student_id,
+//                 first_name: row.first_name,
+//                 last_name: row.last_name,
+//                 email: row.email,
+//                 department: row.department,
+//                 year_level: row.year_level,
+//                 roles: (row.roles || "").split(",").filter(Boolean),
+//             }
 //         });
 //     });
 // };
+// GET /api/users/me
+exports.getProfile = (req, res) => {
+    const user_id = req.user.user_id; // ต้องมี auth middleware ใส่ req.user ให้แล้ว
+    const sql = `
+    SELECT 
+      u.student_id, u.first_name, u.last_name, u.email,
+      d.department_name AS department,
+      y.year_name AS year_level,
+      GROUP_CONCAT(r.role_name) AS roles
+    FROM users u
+    LEFT JOIN department d ON u.department_id = d.department_id
+    LEFT JOIN year_levels y ON u.year_id = y.year_id
+    LEFT JOIN user_roles ur ON u.user_id = ur.user_id
+    LEFT JOIN role r ON ur.role_id = r.role_id
+    WHERE u.user_id = ?
+    GROUP BY u.user_id
+  `;
+    db.query(sql, [user_id], (err, results) => {
+        if (err) return res.status(500).json({ success: false, message: "DB Error" });
+        if (!results.length) return res.status(404).json({ success: false, message: "User not found" });
+        const row = results[0];
+        res.json({
+            success: true,
+            user: {
+                student_id: row.student_id,
+                first_name: row.first_name,
+                last_name: row.last_name,
+                email: row.email,
+                department: row.department,
+                year_level: row.year_level,
+                roles: (row.roles || "").split(",").filter(Boolean),
+            }
+        });
+    });
+};
+
 
 exports.login = (req, res) => {
     const { student_id, password } = req.body;

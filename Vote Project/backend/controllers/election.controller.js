@@ -78,6 +78,7 @@ exports.getElections = (req, res) => {
     });
     res.json({ success: true, data: result });
   });
+  console.log(new Date().toString());
 };
 
 exports.getElectionById = (req, res) => {

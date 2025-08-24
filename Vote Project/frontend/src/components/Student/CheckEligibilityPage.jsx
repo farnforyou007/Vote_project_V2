@@ -1,27 +1,61 @@
 import { useEffect, useState } from "react";
 import Header from "../Header";
 import { formatDate, formatTime, formatDateTime } from "../../utils/dateUtils";
+import { apiFetch } from "../../utils/apiFetch";
+
 export default function CheckEligibilityPage() {
     const [elections, setElections] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [me, setMe] = useState(null);           // เก็บข้อมูล user จาก /me
+    const [roles, setRoles] = useState([]);
+    const studentName = me ? `${me.first_name} ${me.last_name}` : "";
+
+    // useEffect(() => {
+    //     const token = localStorage.getItem("token");
+
+    //     fetch("http://localhost:5000/api/eligibility/list-my", {
+    //         headers: { Authorization: `Bearer ${token}` },
+    //     })
+    //         .then((res) => res.json())
+    //         .then((data) => {
+    //             console.log("🎯 Eligibility response:", data);
+    //             if (data.success) setElections(data.elections || []);
+    //             setLoading(false);
+    //         });
+    // }, []);
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
-
-        fetch("http://localhost:5000/api/eligibility/list-my", {
-            headers: { Authorization: `Bearer ${token}` },
-        })
-            .then((res) => res.json())
-            .then((data) => {
-                console.log("🎯 Eligibility response:", data);
-                if (data.success) setElections(data.elections || []);
+        const fetchData = async () => {
+            // โหลดโปรไฟล์ก่อน
+            const meRes = await apiFetch("http://localhost:5000/api/users/me");
+            if (meRes?.success) {
+                setMe(meRes.user);
+                setRoles(meRes.user.roles || []);
+            }
+            try {
+                const data = await apiFetch("http://localhost:5000/api/eligibility/list-my");
+                if (!data) return;
+                if (data.success) {
+                    setElections(data.elections || []);
+                } else {
+                    alert("ไม่สามารถโหลดข้อมูลได้");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("เกิดข้อผิดพลาดกับ server");
+            } finally {
                 setLoading(false);
-            });
+            }
+        };
+
+        fetchData();
     }, []);
 
     return (
         <>
-            <Header studentName={localStorage.getItem("studentName")} />
+            {/* <Header studentName={localStorage.getItem("studentName")} /> */}
+            <Header studentName={studentName} />
+
             <div className="p-6 max-w-4xl mx-auto">
                 <h1 className="text-2xl font-bold mb-6 text-purple-700 border-b pb-2">รายการเลือกตั้งที่คุณมีสิทธิ์</h1>
 

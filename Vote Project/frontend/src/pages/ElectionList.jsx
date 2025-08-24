@@ -1,72 +1,116 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import Header from "./components/Header";
-import { formatDateTime } from "./utils/dateUtils";
-import { translateStatus } from "./utils/electionStatus"
-import CandidateApplicationForm from "./components/Student/CandidateApplicationForm"
-import EditElectionModal from "./components/AdminManageElections/EditElectionModal";
+import Header from "../components/Header";
+import { formatDateTime } from "../utils/dateUtils";
+import { translateStatus } from "../utils/electionStatus"
+import CandidateApplicationForm from "../components/Student/CandidateApplicationForm"
+import EditElectionModal from "../components/AdminManageElections/EditElectionModal";
+// import { tokenService } from "../utils/tokenService";
 
 import Swal from "sweetalert2";
-import { apiFetch } from "./utils/apiFetch";
+import { apiFetch } from "../utils/apiFetch";
 
 export default function ElectionList() {
 
     const [elections, setElections] = useState([]);
     const [loading, setLoading] = useState(true);
-    const studentName = localStorage.getItem("studentName") || "";
-    const roles = JSON.parse(localStorage.getItem("userRoles") || "[]");
-    const isLoggedIn = !!studentName;
+    // const studentName = localStorage.getItem("studentName") || "";
+    // const roles = JSON.parse(localStorage.getItem("userRoles") || "[]");
+    // const isLoggedIn = !!studentName;
+    const [me, setMe] = useState(null);           // เก็บข้อมูล user จาก /me
+    const [roles, setRoles] = useState([]);
+    const isLoggedIn = !!me;
+    const studentName = me ? `${me.first_name} ${me.last_name}` : "";
+    const isAdmin = roles.includes("ผู้ดูแล");
     const [applyingElectionId, setApplyingElectionId] = useState(null);
     const [showForm, setShowForm] = useState(false);
-    // const [eligible, setEligible] = useState(false);
     const [student, setStudent] = useState(null);
     const [votedElections, setVotedElections] = useState([]);
     const [editingElection, setEditingElection] = useState(null);
-    const isAdmin = roles.includes("ผู้ดูแล");
+ 
+
+
+    // useEffect(() => {
+    //     // const fetchData = async () => {
+    //     const fetchData = async () => {
+    //         // โหลดโปรไฟล์ก่อน
+    //         const meRes = await apiFetch("http://localhost:5000/api/users/me");
+    //         if (meRes?.success) {
+    //             setMe(meRes.user);
+    //             setRoles(meRes.user.roles || []);
+    //         }
+    //         try {
+    //             // const token = localStorage.getItem("token");
+    //             // const headers = {
+    //             //     "Content-Type": "application/json",
+    //             // };
+    //             // if (token) {
+    //             //     headers["Authorization"] = `Bearer ${token}`;
+    //             // }
+    //             // const data = await apiFetch("http://localhost:5000/api/elections", {
+    //             //     headers,
+    //             // });
+    //             const data = await apiFetch("http://localhost:5000/api/elections");
+    //             if (!data) return;
+
+    //             // const data = await res.json();
+    //             if (data.success) {
+    //                 // setElections(data.data);
+    //                 setElections(data.data || data.elections || []);
+    //             } else {
+    //                 alert("ไม่สามารถโหลดข้อมูลได้");
+    //             }
+    //         } catch (err) {
+    //             console.error(err);
+    //             alert("เกิดข้อผิดพลาดกับ server");
+    //         } finally {
+    //             setLoading(false);
+    //         }
+    //     };
+
+    //     fetchData();
+    // }, []);
 
 
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchElections = async () => {
             try {
-                const token = localStorage.getItem("token");
-
-                const headers = {
-                    "Content-Type": "application/json",
-                };
-                if (token) {
-                    headers["Authorization"] = `Bearer ${token}`;
-                }
-
-                const data = await apiFetch("http://localhost:5000/api/elections", {
-                    headers,
-                });
-                if (!data) return;
-
-                // const data = await res.json();
-                if (data.success) {
-                    // setElections(data.data);
-                    setElections(data.data || data.elections || []);
-                } else {
-                    alert("ไม่สามารถโหลดข้อมูลได้");
-                }
-            } catch (err) {
-                console.error(err);
-                alert("เกิดข้อผิดพลาดกับ server");
+                // ✅ โหลดได้แม้ไม่มี token
+                const data = await apiFetch("http://localhost:5000/api/elections");
+                if (data?.success) setElections(data.data || data.elections || []);
+            } catch (e) {
+                console.error(e);
             } finally {
-                setLoading(false);
+                setLoading(false); // ให้หน้า list แสดงผลก่อน
             }
         };
 
-        fetchData();
-    }, []);
+        const fetchMe = async () => {
+            try {
+                const meRes = await apiFetch("http://localhost:5000/api/users/me");
+                if (meRes?.success) {
+                    setMe(meRes.user);
+                    setRoles(meRes.user.roles || []);
+                } else {
+                    setMe(null); setRoles([]);
+                }
+            } catch (e) {
+                // ถ้า 401 ก็ปล่อยผ่าน ไม่ต้อง alert
+                setMe(null); setRoles([]);
+            }
+        };
 
+        fetchElections(); // โหลด public ก่อน
+        fetchMe();        // โหลดโปรไฟล์แบบ non-blocking
+    }, []);
     useEffect(() => {
         if (!isLoggedIn) return;
         const fetchVoted = async () => {
-            const token = localStorage.getItem("token");
-            const headers = { "Content-Type": "application/json" };
-            if (token) headers["Authorization"] = `Bearer ${token}`;
-            const data = await apiFetch("/api/votes/status", { headers });
+            // const token = localStorage.getItem("token");
+            // const headers = { "Content-Type": "application/json" };
+            // if (token) headers["Authorization"] = `Bearer ${token}`;
+            // const data = await apiFetch("/api/votes/status", { headers });
+            const data = await apiFetch("http://localhost:5000/api/votes/status");
             if (data && data.success && data.voted_elections) {
                 setVotedElections(data.voted_elections);
             }
@@ -75,12 +119,12 @@ export default function ElectionList() {
     }, [isLoggedIn]);
 
     const checkEligibility = async (electionId) => {
-        const token = localStorage.getItem('token');
-
-        // เช็คว่ามีสิทธิ์มั้ย
-        const eligibilityData = await apiFetch(`http://localhost:5000/api/eligibility/${electionId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
+        // const token = localStorage.getItem('token');
+        // // เช็คว่ามีสิทธิ์มั้ย
+        // const eligibilityData = await apiFetch(`http://localhost:5000/api/eligibility/${electionId}`, {
+        //     headers: { Authorization: `Bearer ${token}` },
+        // });
+        const eligibilityData = await apiFetch(`http://localhost:5000/api/eligibility/${electionId}`);
         if (!eligibilityData) return;
         // const eligibilityData = await eligibilityRes.json();
 
@@ -96,9 +140,10 @@ export default function ElectionList() {
         }
 
         // เช็คว่าสมัครไปแล้วหรือยัง
-        const checkData = await apiFetch(`http://localhost:5000/api/applications/check/${electionId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
+        // const checkData = await apiFetch(`http://localhost:5000/api/applications/check/${electionId}`, {
+        //     headers: { Authorization: `Bearer ${token}` },
+        // });
+        const checkData = await apiFetch(`http://localhost:5000/api/applications/check/${electionId}`);
         if (!checkData) return;
 
         // const checkData = await checkRes.json();
@@ -117,23 +162,36 @@ export default function ElectionList() {
         setShowForm(true);
 
         // จำลอง student object จาก localStorage หรือ state
-        setStudent({
-            user_id: eligibilityData.user_id,
-            first_name: localStorage.getItem("first_name"),
-            last_name: localStorage.getItem("last_name"),
-            student_id: localStorage.getItem("student_id"),
-            email: localStorage.getItem("email"),
-            department: localStorage.getItem("department"),
-            year_level: localStorage.getItem("year_level"),
-        });
+        // setStudent({
+        //     user_id: eligibilityData.user_id,
+        //     first_name: localStorage.getItem("first_name"),
+        //     last_name: localStorage.getItem("last_name"),
+        //     student_id: localStorage.getItem("student_id"),
+        //     email: localStorage.getItem("email"),
+        //     department: localStorage.getItem("department"),
+        //     year_level: localStorage.getItem("year_level"),
+        // });
+        // ใช้ข้อมูลจาก me ที่เราดึงไว้
+        if (me) {
+            setStudent({
+                user_id: eligibilityData.user_id,
+                first_name: me.first_name,
+                last_name: me.last_name,
+                student_id: me.student_id,
+                email: me.email,
+                department: me.department,
+                year_level: me.year_level,
+            });
+        }
     };
 
     const handleVoteClick = async (electionId) => {
-        const token = localStorage.getItem('token');
-        // เช็คสิทธิ์โหวตก่อน
-        const eligibilityData = await apiFetch(`http://localhost:5000/api/eligibility/${electionId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
+        // const token = localStorage.getItem('token');
+        // // เช็คสิทธิ์โหวตก่อน
+        // const eligibilityData = await apiFetch(`http://localhost:5000/api/eligibility/${electionId}`, {
+        //     headers: { Authorization: `Bearer ${token}` },
+        // });
+        const eligibilityData = await apiFetch(`http://localhost:5000/api/eligibility/${electionId}`);
         if (!eligibilityData) return;
 
         if (!eligibilityData.success || !eligibilityData.eligible) {
@@ -178,7 +236,7 @@ export default function ElectionList() {
     };
 
     const toggleVisibility = async (election) => {
-        const token = localStorage.getItem("token");
+        // const token = localStorage.getItem("token");
         const willHide = !election.is_hidden;
 
         const confirm = await Swal.fire({
@@ -194,10 +252,10 @@ export default function ElectionList() {
         try {
             await apiFetch(`http://localhost:5000/api/elections/${election.election_id}/visibility`, {
                 method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
+                // headers: {
+                //     "Content-Type": "application/json",
+                //     Authorization: `Bearer ${token}`
+                // },
                 body: JSON.stringify({ is_hidden: willHide })
             });
 
@@ -220,7 +278,20 @@ export default function ElectionList() {
         : (elections || []).filter(e => !e.is_hidden); // ผู้ใช้ทั่วไปยังไม่เห็นที่ซ่อน
 
 
-    if (loading) return <p className="p-8">กำลังโหลดข้อมูล...</p>
+
+    // if (loading) return <p className="p-8">กำลังโหลดข้อมูล...</p>
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100">
+                <div className="flex flex-col items-center bg-white shadow-lg rounded-2xl p-8 space-y-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-600"></div>
+                    <p className="text-gray-700 text-lg font-semibold">กำลังโหลดข้อมูล...</p>
+                    <p className="text-sm text-gray-500">กรุณารอสักครู่</p>
+                </div>
+            </div>
+        );
+    }
+
 
     return (
         <>
@@ -251,8 +322,15 @@ export default function ElectionList() {
                                     </span>
                                 )}
                             </div>
-                            <div className="h-[4.5rem] overflow-hidden">
-                                <p className="text-sm text-gray-700 line-clamp-2 break-all">
+                            <div className="h-[4.5rem] overflow-hidden ">
+                                {/* <p className="text-sm text-gray-700 line-clamp-2 break-all">
+                                    {election.description}
+                                </p> */}
+                                {/* <p className="whitespace-pre-line leading-relaxed">
+                                    {election.description}
+                                </p> */}
+
+                                <p className="text-sm text-gray-700 whitespace-pre-wrap break-words line-clamp-3">
                                     {election.description}
                                 </p>
                             </div>
@@ -475,10 +553,11 @@ export default function ElectionList() {
                     election={editingElection}
                     onClose={() => setEditingElection(null)}
                     onSave={async () => {
-                        const token = localStorage.getItem("token");
-                        const data = await apiFetch("http://localhost:5000/api/elections", {
-                            headers: { Authorization: `Bearer ${token}` }
-                        });
+                        // const token = localStorage.getItem("token");
+                        // const data = await apiFetch("http://localhost:5000/api/elections", {
+                        //     headers: { Authorization: `Bearer ${token}` }
+                        // });
+                        const data = await apiFetch("http://localhost:5000/api/elections");
                         if (data && data.success) {
                             setElections(data.data || []);
                         }

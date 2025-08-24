@@ -12,6 +12,8 @@ router.get('/departments', verifyToken, userController.getDepartments);
 router.get('/years', verifyToken, userController.getYears);
 router.get('/levels', verifyToken, userController.getLevels);
 router.get('/filtered-users', verifyToken, userController.filteredUsers);
+router.get("/me", verifyToken, userController.getProfile);
+
 router.get('/', verifyToken,requireRole('ผู้ดูแล'),userController.getAllUsers);
 
 router.post('/add', verifyToken,requireRole('ผู้ดูแล'), userController.addUser);
