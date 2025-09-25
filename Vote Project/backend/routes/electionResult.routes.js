@@ -8,7 +8,7 @@ const requireRole = require('../middleware/role');
 
 // เฉพาะ admin เท่านั้นที่สามารถสรุปผลการเลือกตั้งได้
 router.post('/elections/:id/finalize', verifyToken, requireRole('ผู้ดูแล'), electionResult.finalizeElection);
-// router.get('/elections/:id/results',  verifyToken, electionResult.getElectionResults);
+router.get('/elections/:id/results',  verifyToken, electionResult.getElectionResults);
 
 
 module.exports = router;
