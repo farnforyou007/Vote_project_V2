@@ -24,7 +24,7 @@ module.exports = db;
 // require('dotenv').config();
 // const mysql = require('mysql2/promise');
 
-// const pool = mysql.createPool({
+// const db = mysql.createPool({
 //     host: process.env.DB_HOST,
 //     user: process.env.DB_USER,
 //     password: process.env.DB_PASSWORD,
@@ -38,7 +38,7 @@ module.exports = db;
 // // ✅ ทดสอบเชื่อมต่อทันทีตอน start
 // (async () => {
 //     try {
-//         const conn = await pool.getConnection();
+//         const conn = await db.getConnection();
 //         console.log("✅ Connected to MySQL");
 //         conn.release(); // ปล่อย connection กลับเข้า pool
 //     } catch (err) {
@@ -47,4 +47,6 @@ module.exports = db;
 //     }
 // })();
 
-// module.exports = pool;
+// module.exports = db;
+
+

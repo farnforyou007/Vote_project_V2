@@ -1,9 +1,13 @@
+import { useState } from "react";
+
 export default function UserEditModal({
   editForm, setEditForm,
   departments, educationLevels, years,
   onSubmit, onCancel,
-  handleEditRoleChange
+  handleEditRoleChange,
 }) {
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-purple-100 border border-purple-200 rounded-lg p-6 w-full max-w-3xl relative shadow-xl">
@@ -18,12 +22,59 @@ export default function UserEditModal({
               placeholder="รหัสนักศึกษา" />
           </label>
 
-          <label htmlFor="รหัสผ่าน" className="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน
+          {/* <label htmlFor="รหัสผ่าน" className="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน
             <input className="mt-1 border border-purple-300 p-2 rounded w-full" name="password" type="p assword"
               value={editForm.password || ''} onChange={e =>
                 setEditForm(prev => ({ ...prev, password: e.target.value }))}
               placeholder="รหัสผ่าน (ใหม่ ถ้าไม่เปลี่ยนให้เว้น)" />
-          </label>
+          </label> */}
+          <div >
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              รหัสผ่าน
+            </label>
+
+            {!showPasswordInput ? (
+              <div className="flex items-center gap-3">
+                {/* ช่องว่าง (input dummy) */}
+                <input
+                  className="flex-1 border border-gray-300 p-2 rounded bg-gray-100 cursor-not-allowed"
+                  placeholder="••••••••"
+                  disabled
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordInput(true)}
+                  className="text-sm text-violet-600 underline hover:text-violet-800"
+                >
+                  เปลี่ยนรหัสผ่าน
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <input
+                  className="flex-1 border border-gray-300 p-2 rounded"
+                  name="password"
+                  type="password"
+                  value={editForm.password || ""}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, password: e.target.value }))
+                  }
+                  placeholder="ใส่รหัสผ่านใหม่"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordInput(false);
+                    setEditForm((prev) => ({ ...prev, password: "" }));
+                  }}
+                  className="px-3 py-2 border rounded text-sm"
+                >
+                  ยกเลิก
+                </button>
+              </div>
+            )}
+          </div>
+
 
           <label htmlFor="ชื่อ" className="block text-sm font-medium text-gray-700 mb-1">ชื่อ
             <input className="mt-1 border border-purple-300 p-2 rounded w-full" name="first_name"
@@ -71,10 +122,10 @@ export default function UserEditModal({
           <label htmlFor="ปีที่" className="block text-sm font-medium text-gray-700 mb-1">ชั้นปี
             <select className="mt-1 border p-2 rounded w-full bg-violet-50 border-violet-300"
               value={editForm.year_id || ''}
-                onChange={e => setEditForm(prev => ({ ...prev, year_id: parseInt(e.target.value) }))}>
-                  <option value="">เลือกชั้นปี</option>
-                    {years.filter(y => !editForm.level_id || y.level_id === parseInt(editForm.level_id)).map(y =>
-                  <option key={y.year_id} value={y.year_id}>{y.year_name}</option>)}
+              onChange={e => setEditForm(prev => ({ ...prev, year_id: parseInt(e.target.value) }))}>
+              <option value="">เลือกชั้นปี</option>
+              {years.filter(y => !editForm.level_id || y.level_id === parseInt(editForm.level_id)).map(y =>
+                <option key={y.year_id} value={y.year_id}>{y.year_name}</option>)}
             </select>
           </label>
 

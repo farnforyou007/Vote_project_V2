@@ -234,33 +234,182 @@ exports.getLevels = (req, res) => {
     });
 };
 
+// exports.filteredUsers = (req, res) => {
+//     const { department_id, year_id, level_id } = req.query;
+//     let sql = `
+//     SELECT u.user_id, u.student_id, u.first_name, u.last_name, u.email, u.is_active,
+//         d.department_name, y.year_number, y.year_name,
+//         u.department_id, u.year_id, y.level_id,
+//         GROUP_CONCAT(r.role_name) AS roles,
+//         COALESCE(GROUP_CONCAT(ur.role_id), '') AS roles_array
+//     FROM Users u
+//     LEFT JOIN Department d ON u.department_id = d.department_id
+//     LEFT JOIN Year_levels y ON u.year_id = y.year_id
+//     LEFT JOIN User_Roles ur ON u.user_id = ur.user_id
+//     LEFT JOIN Role r ON ur.role_id = r.role_id
+//     `;
+//     const conditions = [];
+//     const values = [];
+//     if (department_id) { conditions.push('u.department_id = ?'); values.push(department_id); }
+//     if (year_id) { conditions.push('u.year_id = ?'); values.push(year_id); }
+//     if (level_id) { conditions.push('y.level_id = ?'); values.push(level_id); }
+//     if (conditions.length > 0) sql += ' WHERE ' + conditions.join(' AND ');
+//     sql += ' GROUP BY u.user_id';
+
+//     db.query(sql, values, (err, results) => {
+//         if (err) return res.status(500).json({ success: false });
+//         res.json({ success: true, users: results });
+//     });
+// };
+
+// exports.filteredUsers = (req, res) => {
+//     const { department_id, year_id, level_id } = req.query;
+
+//     // รับค่าหน้า/จำนวนแถวจาก dropdown
+//     const limit = Math.min(parseInt(req.query.limit || '10', 10), 100); // กันยิงเกิน
+//     const page = Math.max(parseInt(req.query.page || '1', 10), 1);
+//     const offset = (page - 1) * limit;
+
+//     // SQL พื้นฐาน (เหมือนเดิม)
+//     let baseSql = `
+//     FROM users u
+//     LEFT JOIN department d   ON u.department_id = d.department_id
+//     LEFT JOIN year_levels y  ON u.year_id = y.year_id
+//     LEFT JOIN user_roles ur  ON u.user_id = ur.user_id
+//     LEFT JOIN role r         ON ur.role_id = r.role_id
+//   `;
+
+//     const where = [];
+//     const params = [];
+
+//     if (department_id) { where.push('u.department_id = ?'); params.push(department_id); }
+//     if (year_id) { where.push('u.year_id = ?'); params.push(year_id); }
+//     if (level_id) { where.push('y.level_id = ?'); params.push(level_id); }
+
+//     if (where.length) baseSql += ' WHERE ' + where.join(' AND ');
+
+//     // 1) นับ total (ต้องนับจากชุดเดียวกันกับที่ GROUP BY)
+//     const countSql = `
+//     SELECT COUNT(*) AS total
+//     FROM (
+//       SELECT u.user_id
+//       ${baseSql}
+//       GROUP BY u.user_id
+//     ) AS t
+//   `;
+
+//     // 2) ดึงข้อมูลตามหน้า
+//     const dataSql = `
+//     SELECT 
+//       u.user_id, u.student_id, u.first_name, u.last_name, u.email, u.is_active,
+//       d.department_name, y.year_number, y.year_name,
+//       u.department_id, u.year_id, y.level_id,
+//       GROUP_CONCAT(DISTINCT r.role_name ORDER BY r.role_name) AS roles,
+//       COALESCE(GROUP_CONCAT(DISTINCT ur.role_id ORDER BY ur.role_id), '') AS roles_array
+//     ${baseSql}
+//     GROUP BY u.user_id
+//     ORDER BY u.user_id ASC
+//     LIMIT ? OFFSET ?
+//   `;
+
+//     // รันสองคำสั่งต่อเนื่อง
+//     db.query(countSql, params, (err1, countRows) => {
+//         if (err1) return res.status(500).json({ success: false, message: 'count error' });
+
+//         const total = countRows[0]?.total || 0;
+//         const totalPages = Math.max(Math.ceil(total / limit), 1);
+
+//         db.query(dataSql, [...params, limit, offset], (err2, rows) => {
+//             if (err2) return res.status(500).json({ success: false, message: 'query error' });
+//             const names = rows.map(u => `${u.first_name} ${u.last_name}`);
+//             console.log('[Users:list]', names);
+//             console.log('[Users:list]', [...params, limit, offset]);
+
+//             res.json({
+//                 success: true,
+//                 users: rows,
+//                 page,
+//                 limit,
+//                 total,
+//                 totalPages,
+//             });
+//         });
+//     });
+// };
+
+// controllers/user.controller.js
+// ในฟังก์ชัน exports.filteredUsers
 exports.filteredUsers = (req, res) => {
     const { department_id, year_id, level_id } = req.query;
-    let sql = `
-    SELECT u.user_id, u.student_id, u.first_name, u.last_name, u.email, u.is_active,
-        d.department_name, y.year_number, y.year_name,
-        u.department_id, u.year_id, y.level_id,
-        GROUP_CONCAT(r.role_name) AS roles,
-        COALESCE(GROUP_CONCAT(ur.role_id), '') AS roles_array
-    FROM Users u
-    LEFT JOIN Department d ON u.department_id = d.department_id
-    LEFT JOIN Year_levels y ON u.year_id = y.year_id
-    LEFT JOIN User_Roles ur ON u.user_id = ur.user_id
-    LEFT JOIN Role r ON ur.role_id = r.role_id
-    `;
-    const conditions = [];
-    const values = [];
-    if (department_id) { conditions.push('u.department_id = ?'); values.push(department_id); }
-    if (year_id) { conditions.push('u.year_id = ?'); values.push(year_id); }
-    if (level_id) { conditions.push('y.level_id = ?'); values.push(level_id); }
-    if (conditions.length > 0) sql += ' WHERE ' + conditions.join(' AND ');
-    sql += ' GROUP BY u.user_id';
+    const q = (req.query.q || "").trim().toLowerCase();
 
-    db.query(sql, values, (err, results) => {
-        if (err) return res.status(500).json({ success: false });
-        res.json({ success: true, users: results });
+    const limit = Math.min(parseInt(req.query.limit || '10', 10), 100);
+    const page = Math.max(parseInt(req.query.page || '1', 10), 1);
+    const offset = (page - 1) * limit;
+
+    let baseSql = `
+    FROM users u
+    LEFT JOIN department d   ON u.department_id = d.department_id
+    LEFT JOIN year_levels y  ON u.year_id = y.year_id
+    LEFT JOIN user_roles ur  ON u.user_id = ur.user_id
+    LEFT JOIN role r         ON ur.role_id = r.role_id
+  `;
+
+    const where = [];
+    const params = [];
+
+    if (department_id) { where.push('u.department_id = ?'); params.push(department_id); }
+    if (year_id) { where.push('u.year_id = ?'); params.push(year_id); }
+    if (level_id) { where.push('y.level_id = ?'); params.push(level_id); }
+
+    // ✅ เพิ่มเงื่อนไขค้นหาแบบ case-insensitive
+    if (q) {
+        where.push(`(
+      LOWER(CONCAT(u.first_name, ' ', u.last_name)) LIKE ?
+      OR LOWER(u.student_id) LIKE ?
+      OR LOWER(u.email) LIKE ?
+    )`);
+        params.push(`%${q}%`, `%${q}%`, `%${q}%`);
+    }
+
+    if (where.length) baseSql += ' WHERE ' + where.join(' AND ');
+
+    const countSql = `
+    SELECT COUNT(*) AS total
+    FROM (
+      SELECT u.user_id
+      ${baseSql}
+      GROUP BY u.user_id
+    ) AS t
+  `;
+
+    const dataSql = `
+    SELECT 
+      u.user_id, u.student_id, u.first_name, u.last_name, u.email, u.is_active,
+      d.department_name, y.year_number, y.year_name,
+      u.department_id, u.year_id, y.level_id,
+      GROUP_CONCAT(DISTINCT r.role_name ORDER BY r.role_name) AS roles,
+      COALESCE(GROUP_CONCAT(DISTINCT ur.role_id ORDER BY ur.role_id), '') AS roles_array
+    ${baseSql}
+    GROUP BY u.user_id
+    ORDER BY u.user_id ASC
+    LIMIT ? OFFSET ?
+  `;
+
+    db.query(countSql, params, (err1, countRows) => {
+        if (err1) return res.status(500).json({ success: false, message: 'count error' });
+
+        const total = countRows[0]?.total || 0;
+        const totalPages = Math.max(Math.ceil(total / limit), 1);
+
+        db.query(dataSql, [...params, limit, offset], (err2, rows) => {
+            if (err2) return res.status(500).json({ success: false, message: 'query error' });
+            res.json({ success: true, users: rows, page, limit, total, totalPages });
+        });
     });
 };
+
+
 
 exports.addUser = async (req, res) => {
     const { student_id, first_name, last_name, email, password, department_id, year_id, roles } = req.body;
@@ -311,14 +460,62 @@ exports.updateUser = async (req, res) => {
 
 exports.deleteUser = (req, res) => {
     const userId = req.params.id;
-    db.query('DELETE FROM User_Roles WHERE user_id = ?', [userId], (err) => {
-        if (err) return res.status(500).json({ success: false });
-        db.query('DELETE FROM Users WHERE user_id = ?', [userId], (err2) => {
-            if (err2) return res.status(500).json({ success: false });
-            res.json({ success: true });
-        });
+    db.query('DELETE FROM Users WHERE user_id = ?', [userId], (err2) => {
+        if (err2) return res.status(500).json({ success: false });
+        if (err2.code === 'ER_ROW_IS_REFERENCED_2' || err2.code === 'ER_ROW_IS_REFERENCED') {
+            return res.status(409).json({
+                success: false,
+                message: 'ลบไม่ได้ เพราะมีข้อมูลที่เชื่อมโยงอยู่ (เช่น สิทธิเลือกตั้ง/ใบสมัคร/คะแนนโหวต)'
+            });
+        }
+        res.json({ success: true });
     });
 };
+
+// controllers/users.js
+// exports.deleteUser = async (req, res) => {
+//     const userId = req.params.id;
+//     const conn = await db.getConnection(); // หรือใช้ pool.getConnection()
+
+//     await conn.beginTransaction();
+//     try {
+//         // ป้องกันลบแอดมินตัวเอง/แอดมินหลัก (ตามนโยบาย)
+//         const [[user]] = await conn.query('SELECT user_id FROM users WHERE user_id=?', [userId]);
+//         if (!user) {
+//             await conn.rollback();
+//             return res.status(404).json({ success: false, message: 'ไม่พบผู้ใช้' });
+//         }
+
+//         // ลบตารางลูกที่อ้างถึง user_id ก่อน (เรียงลำดับสำคัญ)
+//         await conn.query('DELETE FROM votes WHERE user_id=?', [userId]);
+//         await conn.query('DELETE FROM vote_history WHERE user_id=?', [userId]);
+//         await conn.query('DELETE FROM applications WHERE user_id=?', [userId]);
+//         await conn.query('DELETE FROM election_eligibility WHERE user_id=?', [userId]);
+//         await conn.query('DELETE FROM user_roles WHERE user_id=?', [userId]);
+
+//         // สุดท้ายค่อยลบ users
+//         const [result] = await conn.query('DELETE FROM users WHERE user_id=?', [userId]);
+
+//         await conn.commit();
+//         return res.json({ success: true, message: 'ลบสำเร็จ', affected: result.affectedRows });
+//     } catch (err) {
+//         await conn.rollback();
+
+//         // จับ error FK โดยเฉพาะ จะได้ส่งข้อความที่เข้าใจง่าย
+//         if (err.code === 'ER_ROW_IS_REFERENCED_2' || err.code === 'ER_ROW_IS_REFERENCED') {
+//             return res.status(409).json({
+//                 success: false,
+//                 message: 'ลบไม่ได้ เพราะมีข้อมูลที่เชื่อมโยงอยู่ (เช่น สิทธิเลือกตั้ง/ใบสมัคร/คะแนนโหวต)'
+//             });
+//         }
+
+//         console.error('Delete user error:', err);
+//         return res.status(500).json({ success: false, message: err.message || 'Internal Server Error' });
+//     } finally {
+//         conn.release && conn.release();
+//     }
+// };
+
 
 exports.getStudents = (req, res) => {
     const { level, year, department } = req.query;

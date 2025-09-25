@@ -11,7 +11,7 @@ export default function StudentApplicationsPage() {
     // โหลดข้อมูลใบสมัครของฉัน
     useEffect(() => {
         (async () => {
-            const data = await apiFetch("http://localhost:5000/api/applications/my-all");
+            const data = await apiFetch("/api/applications/my-all");
             if (data?.success) {
                 setApplications(data.applications || []);
             }
@@ -25,7 +25,7 @@ export default function StudentApplicationsPage() {
         formData.append("policy", policy);
         if (file) formData.append("photo", file);
 
-        const res = await apiFetch("http://localhost:5000/api/applications/update-my", {
+        const res = await apiFetch("/api/applications/update-my", {
             method: "PUT",
             body: formData,
         });

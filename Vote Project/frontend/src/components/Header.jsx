@@ -66,18 +66,6 @@ export default function Header() {
 
 
     useEffect(() => {
-        // const checkApplicationStatus = async () => {
-        //     const token = localStorage.getItem("token");
-        //     if (!token || selectedRole !== "นักศึกษา") return; // เพิ่มเช็ค token
-        //     const data = await apiFetch("/api/applications/check", {
-        //         headers: {
-        //             Authorization: `Bearer ${token}`
-        //         }
-        //     });
-        //     if (!data) return;
-        //     setHasApplied(data.hasApplied);
-        // };
-        // checkApplicationStatus();
         const checkApplicationStatus = async () => {
             if (selectedRole !== "นักศึกษา") return;
             const data = await apiFetch("/api/applications/check");
@@ -98,11 +86,7 @@ export default function Header() {
         setSelectedRole("");
         window.location.href = "/";
     };
-    // useEffect(() => {
-    //     const role = localStorage.getItem("selectedRole") || "";
-    //     setSelectedRole(role);
-    // }, []);
-
+    
     console.log("role : ", selectedRole);
     const MenuItem = ({ href, icon, label }) => (
         <li>

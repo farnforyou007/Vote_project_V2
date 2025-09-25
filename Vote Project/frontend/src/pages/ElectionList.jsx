@@ -1,116 +1,91 @@
-import { useEffect, useState } from "react";
+// src/pages/ElectionList.jsx (reworked)
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Header from "../components/Header";
 import { formatDateTime } from "../utils/dateUtils";
-import { translateStatus } from "../utils/electionStatus"
-import CandidateApplicationForm from "../components/Student/CandidateApplicationForm"
+import { translateStatus } from "../utils/electionStatus";
+import CandidateApplicationForm from "../components/Student/CandidateApplicationForm";
 import EditElectionModal from "../components/AdminManageElections/EditElectionModal";
-// import { tokenService } from "../utils/tokenService";
-
 import Swal from "sweetalert2";
 import { apiFetch } from "../utils/apiFetch";
 
-export default function ElectionList() {
+// ===== Helper: ปี (พ.ศ.) จากวันที่ =====
+const getYearBE = (iso) => {
+    if (!iso) return "ไม่ทราบปี";
+    const y = new Date(iso).getFullYear();
+    return y + 543; // ถ้าอยากใช้ ค.ศ. ให้ return y
+};
 
+// ===== Helper: map สถานะ -> คีย์เซคชัน =====
+const sectionKey = (e) => {
+    const s = e.effective_status || e.auto_status;
+    if (s === "REGISTRATION_OPEN") return "REG";
+    if (s === "VOTING_OPEN") return "VOTE";
+    if (s === "WAITING_VOTE") return "WAIT";
+    return "END"; // ENDED / CLOSED_BY_ADMIN / อื่น ๆ
+};
+
+// ===== Helper: ฐานสำหรับรูปภาพ/ไฟล์และ API (รองรับ CRA) =====
+const API_BASE = process.env.REACT_APP_API_BASE || `${window.location.origin}`;
+const FILE_BASE = process.env.REACT_APP_FILE_BASE || API_BASE.replace(/\/api\/?$/, "");
+
+export default function ElectionList() {
+    // ===== state หลัก =====
     const [elections, setElections] = useState([]);
     const [loading, setLoading] = useState(true);
-    // const studentName = localStorage.getItem("studentName") || "";
-    // const roles = JSON.parse(localStorage.getItem("userRoles") || "[]");
-    // const isLoggedIn = !!studentName;
-    const [me, setMe] = useState(null);           // เก็บข้อมูล user จาก /me
+
+    // โปรไฟล์ / สิทธิ์
+    const [me, setMe] = useState(null);
     const [roles, setRoles] = useState([]);
     const isLoggedIn = !!me;
     const studentName = me ? `${me.first_name} ${me.last_name}` : "";
     const isAdmin = roles.includes("ผู้ดูแล");
+
+    // สมัคร/โหวต/แก้ไข
     const [applyingElectionId, setApplyingElectionId] = useState(null);
     const [showForm, setShowForm] = useState(false);
     const [student, setStudent] = useState(null);
     const [votedElections, setVotedElections] = useState([]);
     const [editingElection, setEditingElection] = useState(null);
- 
 
-
-    // useEffect(() => {
-    //     // const fetchData = async () => {
-    //     const fetchData = async () => {
-    //         // โหลดโปรไฟล์ก่อน
-    //         const meRes = await apiFetch("http://localhost:5000/api/users/me");
-    //         if (meRes?.success) {
-    //             setMe(meRes.user);
-    //             setRoles(meRes.user.roles || []);
-    //         }
-    //         try {
-    //             // const token = localStorage.getItem("token");
-    //             // const headers = {
-    //             //     "Content-Type": "application/json",
-    //             // };
-    //             // if (token) {
-    //             //     headers["Authorization"] = `Bearer ${token}`;
-    //             // }
-    //             // const data = await apiFetch("http://localhost:5000/api/elections", {
-    //             //     headers,
-    //             // });
-    //             const data = await apiFetch("http://localhost:5000/api/elections");
-    //             if (!data) return;
-
-    //             // const data = await res.json();
-    //             if (data.success) {
-    //                 // setElections(data.data);
-    //                 setElections(data.data || data.elections || []);
-    //             } else {
-    //                 alert("ไม่สามารถโหลดข้อมูลได้");
-    //             }
-    //         } catch (err) {
-    //             console.error(err);
-    //             alert("เกิดข้อผิดพลาดกับ server");
-    //         } finally {
-    //             setLoading(false);
-    //         }
-    //     };
-
-    //     fetchData();
-    // }, []);
-
-
+    // ===== โหลดข้อมูล =====
     useEffect(() => {
         const fetchElections = async () => {
             try {
-                // ✅ โหลดได้แม้ไม่มี token
-                const data = await apiFetch("http://localhost:5000/api/elections");
+                const data = await apiFetch(`/api/elections`);
                 if (data?.success) setElections(data.data || data.elections || []);
             } catch (e) {
                 console.error(e);
             } finally {
-                setLoading(false); // ให้หน้า list แสดงผลก่อน
+                setLoading(false);
             }
         };
 
         const fetchMe = async () => {
             try {
-                const meRes = await apiFetch("http://localhost:5000/api/users/me");
+                const meRes = await apiFetch(`/api/users/me`);
                 if (meRes?.success) {
                     setMe(meRes.user);
                     setRoles(meRes.user.roles || []);
                 } else {
-                    setMe(null); setRoles([]);
+                    setMe(null);
+                    setRoles([]);
                 }
-            } catch (e) {
-                // ถ้า 401 ก็ปล่อยผ่าน ไม่ต้อง alert
-                setMe(null); setRoles([]);
+            } catch {
+                // 401 / error -> ปล่อยผ่าน
+                setMe(null);
+                setRoles([]);
             }
         };
 
         fetchElections(); // โหลด public ก่อน
-        fetchMe();        // โหลดโปรไฟล์แบบ non-blocking
+        fetchMe(); // โหลดโปรไฟล์แบบ non-blocking
     }, []);
+
     useEffect(() => {
         if (!isLoggedIn) return;
         const fetchVoted = async () => {
-            // const token = localStorage.getItem("token");
-            // const headers = { "Content-Type": "application/json" };
-            // if (token) headers["Authorization"] = `Bearer ${token}`;
-            // const data = await apiFetch("/api/votes/status", { headers });
-            const data = await apiFetch("http://localhost:5000/api/votes/status");
+            const data = await apiFetch(`/api/votes/status`);
             if (data && data.success && data.voted_elections) {
                 setVotedElections(data.voted_elections);
             }
@@ -118,35 +93,24 @@ export default function ElectionList() {
         fetchVoted();
     }, [isLoggedIn]);
 
+    // ===== Action ปุ่มต่าง ๆ =====
     const checkEligibility = async (electionId) => {
-        // const token = localStorage.getItem('token');
-        // // เช็คว่ามีสิทธิ์มั้ย
-        // const eligibilityData = await apiFetch(`http://localhost:5000/api/eligibility/${electionId}`, {
-        //     headers: { Authorization: `Bearer ${token}` },
-        // });
-        const eligibilityData = await apiFetch(`http://localhost:5000/api/eligibility/${electionId}`);
+        const eligibilityData = await apiFetch(`/api/eligibility/${electionId}`);
         if (!eligibilityData) return;
-        // const eligibilityData = await eligibilityRes.json();
 
         if (!eligibilityData.success || !eligibilityData.eligible) {
             Swal.fire({
                 title: "คุณไม่มีสิทธิ์สมัครในรายการนี้",
-                text: "คุณขาดคุณสมบัติในการลงสมัครจึงไม่สามารถลงสมัครได้\n โปรดติดต่อห้ององค์การ",
+                text: "คุณขาดคุณสมบัติในการลงสมัครจึงไม่สามารถลงสมัครได้\nโปรดติดต่อห้ององค์การ",
                 icon: "warning",
                 confirmButtonText: "รับทราบ",
             });
-
             return;
         }
 
         // เช็คว่าสมัครไปแล้วหรือยัง
-        // const checkData = await apiFetch(`http://localhost:5000/api/applications/check/${electionId}`, {
-        //     headers: { Authorization: `Bearer ${token}` },
-        // });
-        const checkData = await apiFetch(`http://localhost:5000/api/applications/check/${electionId}`);
+        const checkData = await apiFetch(`/api/applications/check/${electionId}`);
         if (!checkData) return;
-
-        // const checkData = await checkRes.json();
 
         if (checkData.applied) {
             Swal.fire({
@@ -157,21 +121,10 @@ export default function ElectionList() {
             });
             return;
         }
-        // ถ้าผ่านทั้งสองเงื่อนไข → แสดงฟอร์ม
+
         setApplyingElectionId(electionId);
         setShowForm(true);
 
-        // จำลอง student object จาก localStorage หรือ state
-        // setStudent({
-        //     user_id: eligibilityData.user_id,
-        //     first_name: localStorage.getItem("first_name"),
-        //     last_name: localStorage.getItem("last_name"),
-        //     student_id: localStorage.getItem("student_id"),
-        //     email: localStorage.getItem("email"),
-        //     department: localStorage.getItem("department"),
-        //     year_level: localStorage.getItem("year_level"),
-        // });
-        // ใช้ข้อมูลจาก me ที่เราดึงไว้
         if (me) {
             setStudent({
                 user_id: eligibilityData.user_id,
@@ -186,12 +139,7 @@ export default function ElectionList() {
     };
 
     const handleVoteClick = async (electionId) => {
-        // const token = localStorage.getItem('token');
-        // // เช็คสิทธิ์โหวตก่อน
-        // const eligibilityData = await apiFetch(`http://localhost:5000/api/eligibility/${electionId}`, {
-        //     headers: { Authorization: `Bearer ${token}` },
-        // });
-        const eligibilityData = await apiFetch(`http://localhost:5000/api/eligibility/${electionId}`);
+        const eligibilityData = await apiFetch(`/api/eligibility/${electionId}`);
         if (!eligibilityData) return;
 
         if (!eligibilityData.success || !eligibilityData.eligible) {
@@ -203,15 +151,10 @@ export default function ElectionList() {
             });
             return;
         }
-        // ถ้ามีสิทธิ์ → ไปหน้าลงคะแนน
         window.location.href = `/election/${electionId}/vote`;
-        // หรือถ้าใช้ react-router v6+
-        // navigate(`/election/${electionId}/vote`);
     };
 
-    const handleEdit = (election) => {
-        setEditingElection(election);
-    };
+    const handleEdit = (election) => setEditingElection(election);
 
     const handleDelete = async (electionId) => {
         const confirm = await Swal.fire({
@@ -222,13 +165,13 @@ export default function ElectionList() {
             confirmButtonColor: "#d33",
             cancelButtonColor: "#3085d6",
             confirmButtonText: "ใช่, ลบเลย!",
-            cancelButtonText: "ยกเลิก"
+            cancelButtonText: "ยกเลิก",
         });
         if (!confirm.isConfirmed) return;
 
         try {
-            await apiFetch(`http://localhost:5000/api/elections/${electionId}`, { method: "DELETE" });
-            setElections(prev => prev.filter(e => e.election_id !== electionId));
+            await apiFetch(`/api/elections/${electionId}`, { method: "DELETE" });
+            setElections((prev) => prev.filter((e) => e.election_id !== electionId));
             Swal.fire("ลบสำเร็จ!", "", "success");
         } catch (err) {
             Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถลบได้", "error");
@@ -236,7 +179,6 @@ export default function ElectionList() {
     };
 
     const toggleVisibility = async (election) => {
-        // const token = localStorage.getItem("token");
         const willHide = !election.is_hidden;
 
         const confirm = await Swal.fire({
@@ -250,36 +192,209 @@ export default function ElectionList() {
         if (!confirm.isConfirmed) return;
 
         try {
-            await apiFetch(`http://localhost:5000/api/elections/${election.election_id}/visibility`, {
+            await apiFetch(`/api/elections/${election.election_id}/visibility`, {
                 method: "PATCH",
-                // headers: {
-                //     "Content-Type": "application/json",
-                //     Authorization: `Bearer ${token}`
-                // },
-                body: JSON.stringify({ is_hidden: willHide })
+                body: JSON.stringify({ is_hidden: willHide }),
             });
 
-            // อัปเดต state ให้ทันที
-            setElections(prev =>
-                prev.map(e => e.election_id === election.election_id ? { ...e, is_hidden: willHide } : e)
+            setElections((prev) =>
+                prev.map((e) => (e.election_id === election.election_id ? { ...e, is_hidden: willHide } : e))
             );
 
             Swal.fire(willHide ? "ซ่อนแล้ว" : "ยกเลิกซ่อนแล้ว", "", "success");
-        } catch (err) {
+        } catch {
             Swal.fire("เกิดข้อผิดพลาด", "อัปเดตการซ่อนไม่สำเร็จ", "error");
         }
     };
 
-    // ด้านบนไฟล์
+    // ===== มุมมอง: กรองปี + แบ่งเซคชัน =====
+    const [yearFilter, setYearFilter] = useState("ALL");
+    const [statusFilter, setStatusFilter] = useState("ALL"); // ALL | REG | VOTE
 
-    // …ในคอมโพเนนต์ ก่อน return
-    const visibleElections = isAdmin
-        ? (elections || [])
-        : (elections || []).filter(e => !e.is_hidden); // ผู้ใช้ทั่วไปยังไม่เห็นที่ซ่อน
+    // ผู้ใช้ทั่วไปไม่เห็นที่ซ่อน
+    const visibleElections = useMemo(
+        () => (isAdmin ? elections || [] : (elections || []).filter((e) => !e.is_hidden)),
+        [elections, isAdmin]
+    );
 
+    // รายชื่อปีทั้งหมดในข้อมูล (พ.ศ.) เรียงล่าสุดก่อน
+    const allYears = useMemo(() => {
+        const set = new Set(visibleElections.map((e) => getYearBE(e.start_date || e.registration_start)));
+        return ["ALL", ...Array.from(set).sort((a, b) => b - a)];
+    }, [visibleElections]);
 
+    // ตามปีที่เลือก + เรียงวันที่ใหม่→เก่า
+    const filteredByYear = useMemo(() => {
+        const list =
+            yearFilter === "ALL"
+                ? visibleElections
+                : visibleElections.filter((e) => getYearBE(e.start_date || e.registration_start) === yearFilter);
 
-    // if (loading) return <p className="p-8">กำลังโหลดข้อมูล...</p>
+        return [...list].sort(
+            (a, b) =>
+                new Date(b.start_date || b.registration_start) - new Date(a.start_date || a.registration_start)
+        );
+    }, [visibleElections, yearFilter]);
+
+    // ใช้ตัวกรองสถานะ (สำหรับหน้า "ทั้งหมด")
+    const filteredByStatus = useMemo(() => {
+        if (statusFilter === "ALL") return filteredByYear;
+        if (statusFilter === "REG") return filteredByYear.filter((e) => sectionKey(e) === "REG");
+        if (statusFilter === "VOTE") return filteredByYear.filter((e) => sectionKey(e) === "VOTE");
+        return filteredByYear;
+    }, [filteredByYear, statusFilter]);
+
+    // แบ่ง 4 เซคชัน (ใช้ในกรณีเลือกปีเฉพาะ)
+    const groupedBySection = useMemo(() => {
+        const buckets = { REG: [], VOTE: [], WAIT: [], END: [] };
+        filteredByYear.forEach((e) => buckets[sectionKey(e)].push(e));
+        return buckets;
+    }, [filteredByYear]);
+
+    // เรนเดอร์การ์ด (ลดขนาดให้เล็กลงเล็กน้อย)
+    const renderCard = (election) => (
+        <div
+            key={election.election_id}
+            className="bg-white p-3 rounded-xl shadow-sm ring-1 ring-black/5 hover:shadow-md hover:-translate-y-0.5 transition"
+        >
+            {election.image_url && (
+                <img
+                    src={`${FILE_BASE}${election.image_url}`}
+                    alt="election"
+                    className="w-full h-36 object-cover rounded-lg mb-3"
+                />
+            )}
+
+            <div className="flex items-start justify-between gap-2 mb-1">
+                <p className="font-semibold text-[15px] leading-snug line-clamp-2">{election.election_name}</p>
+                {isAdmin && election.is_hidden && (
+                    <span className="ml-2 inline-block text-[10px] px-2 py-0.5 rounded bg-gray-200 text-gray-700 shrink-0">ซ่อนอยู่</span>
+                )}
+            </div>
+
+            <p className="text-[13px] text-gray-700 whitespace-pre-wrap break-words line-clamp-3 min-h-[2.8rem]">
+                {election.description}
+            </p>
+
+            <div className="mt-3 grid grid-cols-2 gap-y-2 gap-x-4 text-[12px] border-t pt-3">
+                <div>
+                    <span className="font-semibold text-gray-700">📥 เปิดรับสมัคร:</span>
+                    <br />
+                    <span className="text-gray-800">{formatDateTime(election.registration_start)}</span>
+                </div>
+                <div>
+                    <span className="font-semibold text-gray-700">📤 สิ้นสุดสมัคร:</span>
+                    <br />
+                    <span className="text-gray-800">{formatDateTime(election.registration_end)}</span>
+                </div>
+                <div>
+                    <span className="font-semibold text-gray-700">🗳️ เริ่มลงคะแนน:</span>
+                    <br />
+                    <span className="text-gray-800">{formatDateTime(election.start_date)}</span>
+                </div>
+                <div>
+                    <span className="font-semibold text-gray-700">🛑 สิ้นสุดลงคะแนน:</span>
+                    <br />
+                    <span className="text-gray-800">{formatDateTime(election.end_date)}</span>
+                </div>
+            </div>
+
+            <p className="text-[12px] mt-2">
+                <span className="font-semibold">สถานะ:</span>{" "}
+                <span
+                    className={`px-2 py-0.5 rounded text-white text-[11px] ${election.effective_status === "REGISTRATION_OPEN"
+                        ? "bg-violet-500"
+                        : election.effective_status === "VOTING_OPEN"
+                            ? "bg-green-500"
+                            : election.effective_status === "CLOSED_BY_ADMIN"
+                                ? "bg-gray-500"
+                                : election.effective_status === "ENDED"
+                                    ? "bg-slate-500"
+                                    : election.effective_status === "WAITING_VOTE"
+                                        ? "bg-amber-500"
+                                        : "bg-purple-500"
+                        }`}
+                >
+                    {translateStatus(election.effective_status || election.auto_status)}
+                </span>
+            </p>
+
+            {election.manual_override !== "AUTO" && (
+                <p className="text-[11px] mt-1 text-gray-600">
+                    หมายเหตุผู้ดูแล:{" "}
+                    {election.status_note ||
+                        (election.manual_override === "FORCE_CLOSED"
+                            ? "ปิดชั่วคราวโดยผู้ดูแล"
+                            : "เปิดลงคะแนนแบบบังคับ")}
+                </p>
+            )}
+
+            <div className="mt-3 flex flex-col space-y-2">
+                <Link
+                    to={`/election/${election.election_id}`}
+                    className="block text-center bg-blue-600 text-white py-1 rounded hover:bg-blue-700 text-[13px]"
+                >
+                    ดูรายละเอียด
+                </Link>
+
+                {isLoggedIn && (
+                    <>
+                        {roles.includes("นักศึกษา") && election.effective_status === "REGISTRATION_OPEN" && (
+                            <button
+                                className="w-full bg-yellow-500 text-white py-1 rounded hover:bg-yellow-600 text-[13px]"
+                                onClick={() => checkEligibility(election.election_id)}
+                            >
+                                สมัครเป็นผู้สมัคร
+                            </button>
+                        )}
+
+                        {roles.includes("นักศึกษา") &&
+                            election.effective_status === "VOTING_OPEN" &&
+                            (votedElections.includes(election.election_id) ? (
+                                <button disabled className="w-full bg-gray-400 text-white py-1 rounded cursor-not-allowed text-[13px]">
+                                    ลงคะแนนแล้ว
+                                </button>
+                            ) : (
+                                <button
+                                    className="w-full bg-green-500 text-white py-1 rounded hover:bg-green-600 text-center text-[13px]"
+                                    onClick={() => handleVoteClick(election.election_id)}
+                                >
+                                    ลงคะแนน
+                                </button>
+                            ))}
+
+                        {roles.includes("นักศึกษา") && election.effective_status === "CLOSED_BY_ADMIN" && (
+                            <button className="w-full bg-gray-400 text-white py-1 rounded cursor-not-allowed text-[13px]">ปิดโหวตแล้ว</button>
+                        )}
+
+                        {roles.includes("นักศึกษา") && election.effective_status === "ENDED" && (
+                            <button className="w-full bg-purple-500 text-white py-1 rounded hover:bg-purple-600 text-[13px]">ดูผลคะแนน</button>
+                        )}
+
+                        {isAdmin && (
+                            <div className="grid grid-cols-3 gap-2">
+                                <button onClick={() => handleEdit(election)} className="bg-yellow-500 text-white py-1 rounded hover:bg-yellow-600 text-[13px]">
+                                    แก้ไข
+                                </button>
+                                <button onClick={() => handleDelete(election.election_id)} className="bg-red-600 text-white py-1 rounded hover:bg-red-700 text-[13px]">
+                                    ลบ
+                                </button>
+                                <button
+                                    onClick={() => toggleVisibility(election)}
+                                    className={`py-1 rounded text-white hover:opacity-90 text-[13px] ${election.is_hidden ? "bg-slate-600" : "bg-violet-600"}`}
+                                    title={election.is_hidden ? "ยกเลิกซ่อน" : "ซ่อน"}
+                                >
+                                    {election.is_hidden ? "ยกเลิกซ่อน" : "ซ่อน"}
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        </div>
+    );
+
+    // ===== Loading =====
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100">
@@ -292,6 +407,39 @@ export default function ElectionList() {
         );
     }
 
+    // ===== Views =====
+    // ===== Views =====
+    const YearGrid = ({ list }) => {
+        // มีใบเดียว → จัดกลาง + กว้างเท่าหนึ่งคอลัมน์ของ layout 2 คอลัมน์
+        // if (list.length === 1) {
+        //     return (
+        //         <div className="flex justify-center">
+        //             <div className="w-full md:w-1/2 max-w-[720px]">
+        //                 {renderCard(list[0])}
+        //             </div>
+        //         </div>
+        //     );
+        // }
+
+        // ปกติ → 2 คอลัมน์บนจอ md ขึ้นไป, 1 คอลัมน์บนมือถือ
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {list.map(renderCard)}
+            </div>
+        );
+    };
+
+
+    // ปีทั้งหมด (เรียงใหม่→เก่า) ยกเว้น "ALL"
+    // ปีทั้งหมด (เรียงใหม่→เก่า) ยกเว้น "ALL"
+    const yearsDescending = allYears.filter((y) => y !== "ALL");
+
+    // จัดลำดับสถานะ: REG → VOTE → WAIT → END
+    const statusRank = (e) => {
+        const k = sectionKey(e);
+        return k === "REG" ? 0 : k === "VOTE" ? 1 : k === "WAIT" ? 2 : k === "END" ? 3 : 4;
+    };
+
 
     return (
         <>
@@ -299,246 +447,192 @@ export default function ElectionList() {
 
             <div className="min-h-screen bg-purple-100 p-8">
                 <h1 className="text-2xl font-bold mb-6">รายการเลือกตั้ง</h1>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* {elections.map((election) => ( */}
-                    {/* {(elections || []).map((election) => ( */}
-                    {/* {(elections || []).filter(e => !e.is_hidden).map((election) => ( */}
-                    {visibleElections.map((election) => (
-                        <div
-                            key={election.election_id}
-                            className="bg-white p-4 rounded shadow"
-                        >
-                            <img
-                                src={`http://localhost:5000${election.image_url}`}
-                                alt="election"
-                                className="w-full h-48 object-cover rounded mb-4"
-                            />
-                            {/* <p className="font-semibold mb-2">{election.election_name}</p> */}
-                            <div className="flex items-center justify-between">
-                                <p className="font-semibold mb-2">{election.election_name}</p>
-                                {isAdmin && election.is_hidden && (
-                                    <span className="ml-2 inline-block text-xs px-2 py-0.5 rounded bg-gray-200 text-gray-700">
-                                        ซ่อนอยู่
-                                    </span>
-                                )}
-                            </div>
-                            <div className="h-[4.5rem] overflow-hidden ">
-                                {/* <p className="text-sm text-gray-700 line-clamp-2 break-all">
-                                    {election.description}
-                                </p> */}
-                                {/* <p className="whitespace-pre-line leading-relaxed">
-                                    {election.description}
-                                </p> */}
 
-                                <p className="text-sm text-gray-700 whitespace-pre-wrap break-words line-clamp-3">
-                                    {election.description}
-                                </p>
-                            </div>
+                {/* แถบกรองหลัก */}
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                    {/* ปี */}
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                        {allYears.map((y) => (
+                            <button
+                                key={y}
+                                onClick={() => setYearFilter(y)}
+                                className={`px-3 py-1 rounded-full border text-sm whitespace-nowrap ${yearFilter === y
+                                    ? "bg-violet-600 text-white border-violet-600"
+                                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                                    }`}
+                            >
+                                {y === "ALL" ? "ทั้งหมด" : `ปี ${y}`}
+                            </button>
+                        ))}
+                    </div>
 
-
-                            {/* <p className="text-sm mt-2">
-                                <span className="font-semibold">วันที่เปิดรับสมัคร:</span>{" "}
-                                {formatDateTime(election.registration_start)}
-                            </p>
-                            <p className="text-sm">
-                                <span className="font-semibold">วันที่สิ้นสุดรับสมัคร:</span>{" "}
-                                {formatDateTime(election.registration_end)}
-                            </p>
-                            <p className="text-sm mt-2">
-                                <span className="font-semibold">วันที่เริ่มลงคะแนน:</span>{" "}
-                                {formatDateTime(election.start_date)}
-                            </p>
-                            <p className="text-sm">
-                                <span className="font-semibold">วันที่สิ้นสุดการลงคะแนน:</span>{" "}
-                                {formatDateTime(election.end_date)}
-                            </p> */}
-
-                            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-sm border-t pt-4">
-                                <div>
-                                    <span className="font-semibold text-gray-700">📥 วันที่เปิดรับสมัคร:</span><br />
-                                    <span className="text-gray-800">{formatDateTime(election.registration_start)}</span>
-                                </div>
-                                <div>
-                                    <span className="font-semibold text-gray-700">📤 วันที่สิ้นสุดรับสมัคร:</span><br />
-                                    <span className="text-gray-800">{formatDateTime(election.registration_end)}</span>
-                                </div>
-                                <div>
-                                    <span className="font-semibold text-gray-700">🗳️ วันที่เริ่มลงคะแนน:</span><br />
-                                    <span className="text-gray-800">{formatDateTime(election.start_date)}</span>
-                                </div>
-                                <div>
-                                    <span className="font-semibold text-gray-700">🛑 วันที่สิ้นสุดการลงคะแนน:</span><br />
-                                    <span className="text-gray-800">{formatDateTime(election.end_date)}</span>
-                                </div>
-                            </div>
-
-
-                            <p className="text-sm mt-2">
-                                <span className="font-semibold">สถานะ:</span>{" "}
-                                {/* <span className={`px-2 py-1 rounded text-white text-xs 
-                                ${election.computed_status === "registration" ? "bg-violet-500" :
-                                        election.computed_status === "active" ? "bg-green-500" :
-                                            election.computed_status === "closed" ? "bg-gray-500" :
-                                                election.computed_status === "completed" ? "bg-slate-500" : "bg-purple-500"
-                                    }`
-                                }> */}
-
-                                <span className={`px-2 py-1 rounded text-white text-xs 
-                                ${election.effective_status === "REGISTRATION_OPEN" ? "bg-violet-500" :
-                                        election.effective_status === "VOTING_OPEN" ? "bg-green-500" :
-                                            election.effective_status === "CLOSED_BY_ADMIN" ? "bg-gray-500" :
-                                                election.effective_status === "ENDED" ? "bg-slate-500" :
-                                                    election.effective_status === "WAITING_VOTE" ? "bg-amber-500" :
-                                                        "bg-purple-500"
-                                    }`
-                                }>
-                                    {/* {translateStatus(election.computed_status)} */}
-                                    {translateStatus(election.effective_status || election.auto_status)}
-                                </span>
-                            </p>
-
-                            {election.manual_override !== "AUTO" && (
-                                <p className="text-xs mt-1 text-gray-600">
-                                    หมายเหตุผู้ดูแล: {election.status_note || (election.manual_override === "FORCE_CLOSED" ? "ปิดชั่วคราวโดยผู้ดูแล" : "เปิดลงคะแนนแบบบังคับ")}
-                                </p>
-                            )}
-
-
-                            <div className="mt-4 flex flex-col space-y-2">
-                                {/* ปุ่มดูรายละเอียด ทุกคนเห็น */}
-                                <Link
-                                    to={`/election/${election.election_id}`}
-                                    className="block text-center bg-blue-600 text-white py-1 rounded hover:bg-blue-700"
+                    {/* สถานะ (เฉพาะตอนดู "ทั้งหมด") */}
+                    {yearFilter === "ALL" && (
+                        // {/* ฟิลเตอร์สถานะ (ให้มีทั้งโหมดทั้งหมดและโหมดเลือกปี) */ }
+                        <div className="flex gap-2 ml-auto">
+                            {[
+                                { k: "ALL", label: "ทุกสถานะ" },
+                                { k: "REG", label: "เปิดรับสมัคร" },
+                                { k: "VOTE", label: "เปิดลงคะแนน" },
+                            ].map((it) => (
+                                <button
+                                    key={it.k}
+                                    onClick={() => setStatusFilter(it.k)}
+                                    className={`px-3 py-1 rounded-full border text-sm whitespace-nowrap ${statusFilter === it.k
+                                        ? "bg-blue-600 text-white border-blue-600"
+                                        : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                                        }`}
                                 >
-                                    ดูรายละเอียด
-                                </Link>
-
-                                {/* ถ้า Login แล้ว */}
-                                {isLoggedIn && (
-                                    <>
-                                        {/* นักศึกษา: เปิดรับสมัคร */}
-                                        {/* {roles.includes("นักศึกษา") && election.computed_status === "registration" && ( */}
-                                        {roles.includes("นักศึกษา") && election.effective_status === "REGISTRATION_OPEN" && (
-
-                                            <button
-                                                className="w-full bg-yellow-500 text-white py-1 rounded hover:bg-yellow-600"
-                                                onClick={() => checkEligibility(election.election_id)}
-                                            >
-                                                สมัครเป็นผู้สมัคร
-                                            </button>
-                                        )}
-
-                                        {/* นักศึกษา: เปิดโหวต */}
-                                        {/* {roles.includes("นักศึกษา") && election.computed_status === "active" && (
-                                            // <button className="w-full bg-green-500 text-white py-1 rounded hover:bg-green-600">
-                                            //     โหวต
-                                            // </button>
-                                            // <Link
-                                            //     to={`/election/${election.election_id}/vote`}
-                                            //     className="w-full bg-green-500 text-white py-1 rounded hover:bg-green-600 text-center"
-                                            // >
-                                            //     โหวต
-                                            // </Link>
-                                            
-
-                                        )} */}
-
-                                        {/* {roles.includes("นักศึกษา") && election.computed_status === "active" && ( */}
-                                        {roles.includes("นักศึกษา") && election.effective_status === "VOTING_OPEN" && (
-
-                                            votedElections.includes(election.election_id) ? (
-                                                <button
-                                                    disabled
-                                                    className="w-full bg-gray-400 text-white py-1 rounded cursor-not-allowed"
-                                                >
-                                                    ลงคะแนนแล้ว
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    className="w-full bg-green-500 text-white py-1 rounded hover:bg-green-600 text-center"
-                                                    onClick={() => handleVoteClick(election.election_id)}
-                                                >
-                                                    ลงคะแนน
-                                                </button>
-                                            )
-                                        )}
-
-
-                                        {/* นักศึกษา: ปิดโหวต */}
-                                        {/* {roles.includes("นักศึกษา") && election.computed_status === "closed" && ( */}
-                                        {roles.includes("นักศึกษา") && election.effective_status === "CLOSED_BY_ADMIN" && (
-
-                                            <button className="w-full bg-gray-400 text-white py-1 rounded cursor-not-allowed">
-                                                ปิดโหวตแล้ว
-                                            </button>
-                                        )}
-
-                                        {/* นักศึกษา: เสร็จสิ้น */}
-                                        {/* {roles.includes("นักศึกษา") && election.computed_status === "completed" && ( */}
-                                        {roles.includes("นักศึกษา") && election.effective_status === "ENDED" && (
-
-                                            <button className="w-full bg-purple-500 text-white py-1 rounded hover:bg-purple-600">
-                                                ดูผลคะแนน
-                                            </button>
-                                        )}
-
-                                        {/* ผู้ดูแล: ปุ่มจัดการ */}
-                                        {/* {roles.includes("ผู้ดูแล") && (
-                                            <div className="flex space-x-2">
-                                                <button
-                                                    onClick={() => handleEdit(election)}
-                                                    className="flex-1 bg-yellow-500 text-white py-1 rounded hover:bg-yellow-600"
-                                                >
-                                                    แก้ไข
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(election.election_id)}
-                                                    className="flex-1 bg-red-600 text-white py-1 rounded hover:bg-red-700"
-                                                >
-                                                    ลบ
-                                                </button>
-                                            </div>
-                                        )} */}
-
-                                        {isAdmin && (
-                                            <div className="grid grid-cols-3 gap-2">
-                                                <button
-                                                    onClick={() => handleEdit(election)}
-                                                    className="bg-yellow-500 text-white py-1 rounded hover:bg-yellow-600"
-                                                >
-                                                    แก้ไข
-                                                </button>
-
-
-                                                <button
-                                                    onClick={() => handleDelete(election.election_id)}
-                                                    className="bg-red-600 text-white py-1 rounded hover:bg-red-700"
-                                                >
-                                                    ลบ
-                                                </button>
-
-                                                <button
-                                                    onClick={() => toggleVisibility(election)}
-                                                    className={`py-1 rounded text-white hover:opacity-90
-                                                    ${election.is_hidden ? "bg-slate-600" : "bg-violet-600"}`}
-                                                    title={election.is_hidden ? "ยกเลิกซ่อน" : "ซ่อน"}
-                                                >
-                                                    {election.is_hidden ? "ยกเลิกซ่อน" : "ซ่อน"}
-                                                </button>
-
-                                            </div>
-                                        )}
-
-
-
-                                    </>
-                                )}
-                            </div>
-
+                                    {it.label}
+                                </button>
+                            ))}
                         </div>
-                    ))}
+                    )}
                 </div>
-            </div>
+                {/* Sticky Year Header เมื่อเลือกปีใดปีหนึ่ง */}
+                {yearFilter !== "ALL" && (
+                    <div className="sticky top-0 z-10 -mx-8 px-8 py-2 mb-4 backdrop-blur bg-white/70 border-b">
+                        <h2 className="text-lg font-semibold">ปี {yearFilter}</h2>
+                    </div>
+                )}
+
+                {/* โหมด: หน้ารวมทั้งหมด (แบ่งเซคชันเป็นปี ๆ) */}
+                {yearFilter === "ALL" ? (
+                    yearsDescending.length === 0 ? (
+                        <p className="text-sm text-gray-600">ยังไม่มีรายการเลือกตั้ง</p>
+                    ) : (
+                        <div className="space-y-10">
+                            {yearsDescending.map((yy) => {
+                                // เอาข้อมูลเฉพาะปี yy จากชุดที่ถูกกรองสถานะแล้ว (filteredByStatus)
+                                const listOfYear = filteredByStatus.filter(
+                                    (e) => getYearBE(e.start_date || e.registration_start) === yy
+                                );
+                                if (listOfYear.length === 0) return null;
+
+                                // เรียงสถานะ REG → VOTE → อื่น ๆ และในกลุ่มเดียวกันเรียงวันที่ใหม่→เก่า
+                                const listSorted = [...listOfYear].sort((a, b) => {
+                                    const r = statusRank(a) - statusRank(b);
+                                    if (r !== 0) return r;
+                                    return (
+                                        new Date(b.start_date || b.registration_start) -
+                                        new Date(a.start_date || a.registration_start)
+                                    );
+                                });
+
+                                // หากเลือกเฉพาะสถานะ ให้แสดง grid เดียว
+                                if (statusFilter === "REG" || statusFilter === "VOTE") {
+                                    return (
+                                        <section key={yy}>
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <span className="inline-block w-2 h-2 rounded-full bg-slate-600" />
+                                                <h3 className="text-base font-semibold">ปี {yy}</h3>
+                                            </div>
+                                            <YearGrid list={listSorted} />
+                                        </section>
+                                    );
+                                }
+
+                                // ไม่ได้กรองสถานะ -> แบ่งย่อยตามสถานะภายในปี
+                                const buckets = { REG: [], VOTE: [], WAIT: [], END: [] };
+                                listOfYear.forEach((e) => buckets[sectionKey(e)].push(e));
+
+                                return (
+                                    <section key={yy}>
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <span className="inline-block w-2 h-2 rounded-full bg-slate-600" />
+                                            <h3 className="text-base font-semibold">ปี {yy}</h3>
+                                        </div>
+
+                                        {buckets.REG.length > 0 && (
+                                            <div className="mb-6">
+                                                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                                                    <span className="inline-block w-2 h-2 rounded-full bg-violet-500" />
+                                                    เปิดรับสมัคร
+                                                </h4>
+                                                <YearGrid list={buckets.REG} />
+                                            </div>
+                                        )}
+
+                                        {buckets.VOTE.length > 0 && (
+                                            <div className="mb-6">
+                                                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                                                    <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+                                                    กำลังลงคะแนน
+                                                </h4>
+                                                <YearGrid list={buckets.VOTE} />
+                                            </div>
+                                        )}
+
+                                        {buckets.WAIT.length > 0 && (
+                                            <div className="mb-6">
+                                                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                                                    <span className="inline-block w-2 h-2 rounded-full bg-amber-500" />
+                                                    รอโหวต
+                                                </h4>
+                                                <YearGrid list={buckets.WAIT} />
+                                            </div>
+                                        )}
+
+                                        {buckets.END.length > 0 && (
+                                            <div className="mb-2">
+                                                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                                                    <span className="inline-block w-2 h-2 rounded-full bg-slate-500" />
+                                                    สิ้นสุดแล้ว
+                                                </h4>
+                                                <YearGrid list={buckets.END} />
+                                            </div>
+                                        )}
+                                    </section>
+                                );
+                            })}
+                        </div>
+                    )
+                ) : (
+                    // โหมด: เลือกปีเฉพาะ (คงโครงเดิม แบ่งตามสถานะ)
+                    <>
+                    
+                        {groupedBySection.REG.length > 0 && (
+                            <section className="mb-8">
+                                <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                                    <span className="inline-block w-2 h-2 rounded-full bg-violet-500" />
+                                    เปิดรับสมัคร
+                                </h3>
+                                <YearGrid list={groupedBySection.REG} />
+                            </section>
+                        )}
+
+                        {groupedBySection.VOTE.length > 0 && (
+                            <section className="mb-8">
+                                <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                                    <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+                                    กำลังลงคะแนน
+                                </h3>
+                                <YearGrid list={groupedBySection.VOTE} />
+                            </section>
+                        )}
+
+                        {groupedBySection.WAIT.length > 0 && (
+                            <section className="mb-8">
+                                <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                                    <span className="inline-block w-2 h-2 rounded-full bg-amber-500" />
+                                    รอโหวต
+                                </h3>
+                                <YearGrid list={groupedBySection.WAIT} />
+                            </section>
+                        )}
+
+                        {groupedBySection.END.length > 0 && (
+                            <section className="mb-2">
+                                <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                                    <span className="inline-block w-2 h-2 rounded-full bg-slate-500" />
+                                    สิ้นสุดแล้ว
+                                </h3>
+                                <YearGrid list={groupedBySection.END} />
+                            </section>
+                        )}
+                    </>
+                )}
+            </div >
 
             {showForm && student && (
                 <CandidateApplicationForm
@@ -546,26 +640,23 @@ export default function ElectionList() {
                     electionId={applyingElectionId}
                     onClose={() => setShowForm(false)}
                 />
-            )}
+            )
+            }
 
-            {editingElection && (
-                <EditElectionModal
-                    election={editingElection}
-                    onClose={() => setEditingElection(null)}
-                    onSave={async () => {
-                        // const token = localStorage.getItem("token");
-                        // const data = await apiFetch("http://localhost:5000/api/elections", {
-                        //     headers: { Authorization: `Bearer ${token}` }
-                        // });
-                        const data = await apiFetch("http://localhost:5000/api/elections");
-                        if (data && data.success) {
-                            setElections(data.data || []);
-                        }
-                    }}
-                />
-            )}
-
-
+            {
+                editingElection && (
+                    <EditElectionModal
+                        election={editingElection}
+                        onClose={() => setEditingElection(null)}
+                        onSave={async () => {
+                            const data = await apiFetch(`/api/elections`);
+                            if (data && data.success) {
+                                setElections(data.data || []);
+                            }
+                        }}
+                    />
+                )
+            }
         </>
     );
 }

@@ -4,7 +4,7 @@ export default function UserTable({ users, rowsPerPage, onEdit, onDelete }) {
     return (
         <div className="overflow-x-auto">
             <table className="min-w-full bg-white border border-gray-300">
-                <thead className="bg-purple-200 text-left">
+                <thead className="bg-slate-200 text-left">
                     <tr>
                         <th className="p-2">บทบาท</th>
                         <th className="p-2">รหัสนักศึกษา</th>
@@ -21,7 +21,8 @@ export default function UserTable({ users, rowsPerPage, onEdit, onDelete }) {
                         // <tr key={index} className="border-t hover:bg-gray-50">
                         <tr
                             key={index}
-                            className={`border-t hover:bg-gray-200  ${index % 2 === 0 ? "bg-white " : "bg-purple-100"}`}
+                            className={`border-t hover:bg-zinc-200 ${index % 2 === 0 ? "bg-white" : "bg-slate-200"
+                                }`}
                         >
                             <td className="p-2">{user.roles}</td>
                             <td className="p-2">{user.student_id}</td>
@@ -41,7 +42,11 @@ export default function UserTable({ users, rowsPerPage, onEdit, onDelete }) {
                                     <FaTrash size={14} />  ลบ
                                 </button>
                             </td>
+
+
                         </tr>
+
+
                     ))}
                 </tbody>
             </table>

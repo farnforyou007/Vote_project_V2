@@ -231,21 +231,6 @@ export default function AddElectionModal({ onClose, onSave }) {
                         )}
                     </div>
 
-                    {/* รายละเอียด (ไม่บังคับ) */}
-                    {/* <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            รายละเอียด
-                        </label>
-                        <textarea
-                            name="description"
-                            value={form.description}
-                            onChange={handleChange}
-                            className="w-full border border-purple-300 p-2 rounded"
-                            rows={3}
-                            placeholder="กรอกรายละเอียด (ไม่บังคับ)"
-                        />
-                    </div> */}
-
                     {/*  version plaintext */}
                     {/* รายละเอียด (Plain text + mini toolbar) */}
                     <div>
@@ -360,7 +345,7 @@ export default function AddElectionModal({ onClose, onSave }) {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                เริ่มรับสมัคร
+                                เริ่มรับสมัคร (ปี ค.ศ.)
                             </label>
                             <input
                                 type="datetime-local"
@@ -400,7 +385,7 @@ export default function AddElectionModal({ onClose, onSave }) {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                เริ่มลงคะแนน
+                                เริ่มลงคะแนน (ปี ค.ศ.)
                             </label>
                             <input
                                 type="datetime-local"

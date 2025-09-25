@@ -39,6 +39,12 @@ const applicationRoutes = require('./routes/application.routes');
 const candidateRoutes = require('./routes/candidate.routes');
 const voteRoutes = require('./routes/vote.routes');
 const pingRoutes = require("./routes/ping.routes");
+const dashboardRoutes = require('./routes/dashboard.routes');
+const electionResult = require('./routes/electionResult.routes');
+
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api', electionResult);
+
 
 app.use("/api", pingRoutes);
 

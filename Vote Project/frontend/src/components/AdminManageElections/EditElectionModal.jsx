@@ -252,7 +252,7 @@ export default function EditElectionModal({ election, onClose, onSave }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">เริ่มรับสมัคร</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">เริ่มรับสมัคร (ปี ค.ศ.)</label>
               <input
                 type="datetime-local"
                 name="registration_start"
@@ -289,7 +289,7 @@ export default function EditElectionModal({ election, onClose, onSave }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">เริ่มลงคะแนน</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">เริ่มลงคะแนน (ปี ค.ศ.)</label>
               <input
                 type="datetime-local"
                 name="start_date"

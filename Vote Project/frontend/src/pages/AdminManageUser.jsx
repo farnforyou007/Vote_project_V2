@@ -1,6 +1,6 @@
 // // src/pages/AdminManageUsers.jsx
 // src/pages/AdminManageUsers.jsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Header from "../components/Header";
 import UserFilterBar from "../components/AdminManageUser/UserFilterBar";
 import UserTable from "../components/AdminManageUser/UserTable";
@@ -26,7 +26,10 @@ export default function AdminManageUsers() {
     const [selectedYear, setSelectedYear] = useState('');
     const [selectedLevel, setSelectedLevel] = useState('');
     const [search, setSearch] = useState('');
-    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [page, setPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10);  // limit
+    const [totalPages, setTotalPages] = useState(1);
+
 
     // ฟอร์มเพิ่ม/แก้ไข
     const [showAddForm, setShowAddForm] = useState(false);
@@ -62,11 +65,16 @@ export default function AdminManageUsers() {
             if (selectedDept) query.push(`department_id=${selectedDept}`);
             if (selectedYear) query.push(`year_id=${selectedYear}`);
             if (selectedLevel) query.push(`level_id=${selectedLevel}`);
+            query.push(`limit=${rowsPerPage}`);
+            query.push(`page=${page}`);
+            if (search) query.push(`q=${encodeURIComponent(search)}`);
             const qs = query.length ? `?${query.join("&")}` : "";
 
             const data = await apiFetch(`/api/users/filtered-users${qs}`);
             if (!data) return; // 401 → apiFetch จัดการแล้ว
-            if (data.success) setUsers(data.users || []);
+            if (data.success)
+                setUsers(data.users || []);
+            setTotalPages(data.totalPages || 1);
         } catch (err) {
             console.error('โหลด users ผิดพลาด:', err);
         }
@@ -95,7 +103,8 @@ export default function AdminManageUsers() {
     useEffect(() => {
         fetchUsers();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedDept, selectedYear, selectedLevel]);
+    }, [selectedDept, selectedYear, selectedLevel, page, rowsPerPage, search]);
+
 
     // จัดการ roles ในฟอร์ม
     const handleRoleChange = (roleId) => {
@@ -246,13 +255,41 @@ export default function AdminManageUsers() {
     };
 
     // filter ชื่อและรหัส
-    const filteredUsers = users.filter(user => {
-        const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
-        return (
-            fullName.includes(search.toLowerCase()) ||
-            (user.student_id || "").toLowerCase().includes(search.toLowerCase())
-        );
-    });
+    // const filteredUsers = users.filter(user => {
+    //     const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+    //     return (
+    //         fullName.includes(search.toLowerCase()) ||
+    //         (user.student_id || "").toLowerCase().includes(search.toLowerCase())
+    //     );
+    // });
+
+    // สร้างแผนที่ year_id -> level_id จากรายการปีที่มีอยู่
+    const yearToLevel = useMemo(() => {
+        const m = {};
+        years.forEach(y => { m[String(y.year_id)] = String(y.level_id); });
+        return m;
+    }, [years]);
+
+    // เมื่อเปลี่ยน 'ชั้นปี' ให้เซ็ต level ให้สอดคล้องอัตโนมัติ
+    const handleYearChange = (yearId) => {
+        setSelectedYear(yearId);
+        if (!yearId) {
+            setSelectedLevel(''); // เลือก "ค่าเริ่มต้น" ของชั้นปี → รีเซ็ตระดับ
+        }
+        const nextLevel = yearToLevel[String(yearId)] || '';
+        if (nextLevel && nextLevel !== String(selectedLevel)) {
+            setSelectedLevel(nextLevel);     // ⬅️ อัปเดตระดับให้ตรงกับชั้นปีที่เลือก
+        }
+
+        setPage(1);                        // รีเซ็ตหน้าให้เติมเต็มก่อน
+    };
+
+    // ปีที่แสดงต้องกรองตาม level ที่เลือก (dependent dropdown เดิม)
+    const yearsOptions = useMemo(
+        () => years.filter(y => !selectedLevel || String(y.level_id) === String(selectedLevel)),
+        [years, selectedLevel]
+    );
+
 
     // กันกระพริบสิทธิ์: รอโหลดโปรไฟล์ก่อน
     // if (loadingMe) {
@@ -297,28 +334,67 @@ export default function AdminManageUsers() {
     return (
         <>
             {/* Header โหลด /me เองแล้ว ไม่ต้องส่ง studentName */}
-            <Header />
+            <div className="min-h-screen flex flex-col bg-purple-100">
+                <Header />
 
-            <div className="p-6 bg-purple-100 min-h-screen">
-                <h1 className="text-xl font-bold mb-4">จัดการผู้ใช้งาน</h1>
+                {/* main จะกินพื้นที่ที่เหลือ และค่อยมีสกอลล์เมื่อ “ล้นจริง” */}
+                <main className="flex-1 overflow-y-auto">
+                    <div className="container mx-auto px-4 py-6">
+                        <h1 className="text-xl font-bold mb-4">จัดการผู้ใช้งาน</h1>
 
-                <UserFilterBar
-                    search={search} setSearch={setSearch}
-                    selectedDept={selectedDept} setSelectedDept={setSelectedDept}
-                    selectedYear={selectedYear} setSelectedYear={setSelectedYear}
-                    selectedLevel={selectedLevel} setSelectedLevel={setSelectedLevel}
-                    rowsPerPage={rowsPerPage} setRowsPerPage={setRowsPerPage}
-                    departments={departments} years={years} levels={educationLevels}
-                    onAddUserClick={() => setShowAddForm(true)}
-                />
+                        {/* Filter Bar: บนจอเล็กวางแนวตั้ง, จอใหญ่เป็นแถว */}
+                        <div className="mb-4">
+                            {/* <UserFilterBar
+                                search={search} setSearch={setSearch} */}
+                            <UserFilterBar
+                                search={search}
+                                setSearch={(v) => { setSearch(v); setPage(1); }}
+                                selectedDept={selectedDept} setSelectedDept={(d) => { setSelectedDept(d); setPage(1); }}
+                                // selectedYear={selectedYear} setSelectedYear={(y) => { setSelectedYear(y); setPage(1); }}
+                                // selectedLevel={selectedLevel} setSelectedLevel={(l) => { setSelectedLevel(l); setPage(1); }}
+                                // rowsPerPage={rowsPerPage} setRowsPerPage={(n) => { setRowsPerPage(n); setPage(1); }}
+                                // departments={departments} years={years} levels={educationLevels}
+                                selectedYear={selectedYear} setSelectedYear={handleYearChange}   // ← ใช้ handler ที่ map ปี -> ระดับ
+                                selectedLevel={selectedLevel} setSelectedLevel={(l) => { setSelectedLevel(l); setSelectedYear(''); setPage(1); }}
+                                rowsPerPage={rowsPerPage} setRowsPerPage={(n) => { setRowsPerPage(n); setPage(1); }}
+                                departments={departments} years={yearsOptions} levels={educationLevels}  // ← ส่งปีที่กรองแล้ว
+                                onAddUserClick={() => setShowAddForm(true)}
+                            />
+                        </div>
 
-                <UserTable
-                    users={filteredUsers}
-                    rowsPerPage={rowsPerPage}
-                    onEdit={handleEditClick}
-                    onDelete={handleDeleteUser}
-                />
+                        {/* ตาราง: ห่อด้วย overflow-x-auto ป้องกันล้นแนวนอนบนมือถือ */}
+                        <div className="overflow-x-auto bg-white rounded-xl shadow">
+                            <UserTable
+                                // users={filteredUsers}
+                                // rowsPerPage={rowsPerPage}
+                                users={users} rowsPerPage={rowsPerPage}
+                                onEdit={handleEditClick}
+                                onDelete={handleDeleteUser}
+                            />
+                        </div>
+
+                        {/* Pagination ตรงกลางใต้ตาราง */}
+                        <div className="flex justify-center items-center gap-2 mt-4">
+                            <button
+                                disabled={page <= 1}
+                                onClick={() => setPage(p => p - 1)}
+                                className="px-3 py-1 border rounded disabled:opacity-50"
+                            >
+                                ก่อนหน้า
+                            </button>
+                            <span>หน้า {page} / {totalPages}</span>
+                            <button
+                                disabled={page >= totalPages}
+                                onClick={() => setPage(p => p + 1)}
+                                className="px-3 py-1 border rounded disabled:opacity-50"
+                            >
+                                ถัดไป
+                            </button>
+                        </div>
+                    </div>
+                </main>
             </div>
+
 
             {showAddForm && (
                 <UserFormModal
@@ -346,6 +422,9 @@ export default function AdminManageUsers() {
                     handleEditRoleChange={handleEditRoleChange}
                 />
             )}
+
+
+
         </>
     );
 }

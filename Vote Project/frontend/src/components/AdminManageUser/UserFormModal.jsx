@@ -67,15 +67,15 @@ export default function UserFormModal({
   };
 
   const handleConfirm = async () => {
-    const { ok, e } = validate();
+    const { ok } = validate();
     if (!ok) {
-      const msgs = Object.values(e).filter(Boolean);
-      await Swal.fire({
-        icon: "warning",
-        title: "กรุณาตรวจสอบข้อมูล",
-        html: `<div style="text-align:left">${msgs.map(m => `•  ${m}`).join("<br/>")}</div>`,
-        confirmButtonText: "รับทราบ",
-      });
+      // const msgs = Object.values(e).filter(Boolean);
+      // await Swal.fire({
+      //   icon: "warning",
+      //   title: "กรุณาตรวจสอบข้อมูล",
+      //   html: `<div style="text-align:left">${msgs.map(m => `•  ${m}`).join("<br/>")}</div>`,
+      //   confirmButtonText: "รับทราบ",
+      // });
       return;
     }
     // ผ่านทั้งหมด → ส่งต่อให้ parent ยิง API

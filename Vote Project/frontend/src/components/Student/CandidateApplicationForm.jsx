@@ -28,7 +28,7 @@ export default function CandidateApplicationForm({ student, electionId, onClose 
         const formData = new FormData();
         formData.append('user_id', student.user_id);
         formData.append('election_id', electionId);
-        formData.append('policy', policy);
+        formData.append('policy', policy.trim());
         formData.append('photo', image);
 
 

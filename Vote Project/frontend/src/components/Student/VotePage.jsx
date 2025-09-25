@@ -322,7 +322,7 @@ export default function VotePage() {
                                                 <p className="text-sm text-gray-600">
                                                     <span className="font-medium">ชั้นปี:</span> {year}
                                                 </p>
-                                                <p className="text-sm text-gray-700 mt-2 line-clamp-2">
+                                                <p className="text-sm text-gray-700 mt-2 line-clamp-2 whitespace-pre-line">
                                                     <span className="font-medium">นโยบาย:</span>{" "}
                                                     {c.policy || "-"}
                                                 </p>
