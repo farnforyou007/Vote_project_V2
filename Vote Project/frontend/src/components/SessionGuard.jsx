@@ -88,8 +88,13 @@ export default function SessionGuard() {
                     text: "กรุณาเข้าสู่ระบบใหม่",
                     confirmButtonText: "เข้าสู่ระบบ",
                 });
-                tokenService.remove();           // ใช้ tokenService ไม่แตะ localStorage ตรงๆ
-                navigate("/login");
+                // tokenService.remove();           // ใช้ tokenService ไม่แตะ localStorage ตรงๆ
+                // navigate("/login");
+                const returnTo = `${location.pathname}${location.search}${location.hash}`;
+                sessionStorage.setItem("returnTo", returnTo);
+                tokenService.remove();
+                navigate("/login", { replace: true, state: { from: returnTo } });
+
                 return;
             }
 

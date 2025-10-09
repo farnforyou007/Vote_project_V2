@@ -19,14 +19,14 @@ import {
     CursorArrowRaysIcon,
     FlagIcon,
 } from "@heroicons/react/24/solid";
+
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend); // register องค์ประกอบที่ชาร์ตต้องใช้
 
 // ---- โทนสีเดียวกับแดชบอร์ดเดิม (ปรับใช้ซ้ำได้) ----
 const COLORS = ["#3b82f6", "#f59e0b", "#ef4444", "#10b981", "#8b5cf6", "#06b6d4"]; // พาเล็ตต์หลัก
 
 export default function AdminDashboard() {
-    // -------- สถานะผู้ใช้/บทบาท (สไตล์เดียวกับ AdminElectionList.jsx) --------
-    const [me, setMe] = useState(null);                                           // ข้อมูลผู้ใช้ปัจจุบัน
+    // -------- สถานะผู้ใช้/บทบาท (สไตล์เดียวกับ AdminElectionList.jsx) --------                                          // ข้อมูลผู้ใช้ปัจจุบัน
     const [roles, setRoles] = useState([]);                                       // รายชื่อบทบาท (ต้องมี "ผู้ดูแล")
     const [loadingMe, setLoadingMe] = useState(true);                             // สถานะโหลดโปรไฟล์
     const [error, setError] = useState(null);                                     // เก็บข้อความ error ถ้ามี
@@ -42,6 +42,7 @@ export default function AdminDashboard() {
     const [ballotSplit, setBallotSplit] = useState([]);                           // โดนัท: โหวต/งด/ไม่มา
     const [deptDist, setDeptDist] = useState([]);                                 // แผนก
     const [yearDist, setYearDist] = useState([]);                                 // ชั้นปี
+
     const [activeElections, setActiveElections] = useState([]);                   // ตารางรายการเลือกตั้งที่ยังเปิด/ล่าสุด
     const [loadingData, setLoadingData] = useState(true);                         // สถานะโหลดข้อมูลแดชบอร์ด
     const [electionSummary, setElectionSummary] = useState({ total: 0, registering: 0, voting: 0, finished: 0 });
@@ -51,7 +52,6 @@ export default function AdminDashboard() {
             try {
                 const meRes = await apiFetch("/api/users/me");                          // ดึงโปรไฟล์/บทบาทปัจจุบัน :contentReference[oaicite:8]{index=8}
                 if (meRes?.success) {
-                    setMe(meRes.user);                                                    // เก็บข้อมูลผู้ใช้
                     setRoles(meRes.user.roles || []);                                     // เก็บบทบาท (ต้องมี "ผู้ดูแล")
                 }
             } catch (e) {
@@ -62,47 +62,55 @@ export default function AdminDashboard() {
         })();
     }, []);
 
-    // -------- โหลดข้อมูลแดชบอร์ด (เรียก API ใหม่ที่เพิ่มฝั่ง backend) --------
+    // -------- โหลดข้อมูลแดชบอร์ด --------
     useEffect(() => {
         (async () => {
             setLoadingData(true);
 
             // ยิงพร้อมกัน แต่ไม่ให้ทั้งชุดพังถ้ามีตัวใดตัวหนึ่ง error
             const results = await Promise.allSettled([
-                apiFetch("/api/dashboard/kpis"),
-                apiFetch("/api/dashboard/turnout-history"),
-                apiFetch("/api/dashboard/ballot-split/"),        // ยังไม่มีข้อมูล → อาจ 500
-                apiFetch("/api/dashboard/department-distribution"),
-                apiFetch("/api/dashboard/year-distribution"),
-                apiFetch("/api/dashboard/active-elections"),
-                apiFetch("/api/dashboard/election-summary"),
+                apiFetch("/api/dashboard/kpis"),    // 0 kpis
+                apiFetch("/api/dashboard/turnout-history"), // 1 turnout history
+                apiFetch("/api/dashboard/ballot-split/2"),       // 2 ballot split (ต้องตามด้วย electionId)
+
+                apiFetch("/api/dashboard/department-distribution"),     // 3 department distribution
+                apiFetch("/api/dashboard/year-distribution"),       // 4 year distribution
+                
+                apiFetch("/api/dashboard/active-elections"),                // 5 active elections
+                apiFetch("/api/dashboard/election-summary"),                    // 6 election summary
             ]);
 
             // helper ดึงค่าจาก Promise.allSettled
-            const pick = (idx) => results[idx]?.status === "fulfilled" ? results[idx].value : null;
-
-            const k = pick(0), t = pick(1), b = pick(2), d = pick(3), y = pick(4), a = pick(5), es = pick(6);
-
+            const pick = (idx) =>
+                    results[idx]?.status === "fulfilled" ? results[idx].value : null;
+            const kpis = pick(0), 
+                    turnout = pick(1), 
+                    ballot = pick(2), 
+                    department = pick(3), 
+                    year = pick(4), 
+                    activeElection = pick(5), 
+                    electionSummary = pick(6);
 
             // เซ็ตเฉพาะตัวที่สำเร็จ; ตัวที่ล้มตั้งเป็นค่าเริ่มต้น
-            if (k?.success) setKpis(k.data); else setKpis({ users: 0, eligible: 0, elections: 0, ongoing: 0, candidates: 0 });
-            setTurnout(Array.isArray(t?.data) ? t.data : []);                // ถ้า error → []
-            setBallotSplit(Array.isArray(b?.data) ? b.data : []);            // ถ้า error → []
-            setDeptDist(Array.isArray(d?.data) ? d.data : []);
-            setYearDist(Array.isArray(y?.data) ? y.data : []);
-            setActiveElections(Array.isArray(a?.data) ? a.data : []);
-            if (es?.success)
-                setElectionSummary(es.data);
+            if (kpis?.success) 
+                setKpis(kpis.data); 
+            else setKpis({ users: 0, eligible: 0, elections: 0, ongoing: 0, candidates: 0 });
 
-            // else setElectionSummary({ total: 0, registering: 0, voting: 0, finished: 0 });
-            // ไม่ต้อง setError ทั้งหน้า เพียง log ไว้ก็พอ
+                setTurnout(Array.isArray(turnout?.data) ? turnout.data : []);                // ถ้า error → []
+                setBallotSplit(Array.isArray(ballot?.data) ? ballot.data : []);            
+                setDeptDist(Array.isArray(department?.data) ? department.data : []);
+                setYearDist(Array.isArray(year?.data) ? year.data : []);
+                setActiveElections(Array.isArray(activeElection?.data) ? activeElection.data : []);
+
+            if (electionSummary?.success)
+                setElectionSummary(electionSummary.data);
+
             if (results.some(r => r.status === 'rejected')) {
                 console.warn('[dashboard] some endpoints failed', results.filter(r => r.status === 'rejected'));
             }
-
             setLoadingData(false);
-        })().catch(e => {
-            // เกิดข้อผิดพลาดแบบไม่คาดคิด
+        })()
+            .catch(e => {
             console.error(e);
             setLoadingData(false);
         });
@@ -124,9 +132,9 @@ export default function AdminDashboard() {
         });
     }, []);
 
-
     const filteredElections = useMemo(() => {
-        const list = allElections.map(e => ({ ...e, _status: e.status || getElectionStatus(e) }));
+        const list = allElections.map(e => 
+            ({ ...e, _status: e.status || getElectionStatus(e) }));
         if (statusFilter === "ALL") return list;
         return list.filter(e => e._status === statusFilter);
     }, [allElections, statusFilter]);
@@ -145,16 +153,14 @@ export default function AdminDashboard() {
         const s = localStorage.getItem("admin_dash_status_filter");
         if (s) setStatusFilter(s);
     }, []);
+
     useEffect(() => {
         localStorage.setItem("admin_dash_status_filter", statusFilter);
         setSelectedElectionId("");
         setBallotSplit([]);
     }, [statusFilter]);
 
-
     // -------- เตรียมข้อมูลสำหรับ Bar/Doughnut (Chart.js) --------
-    // แนวทาง map labels/datasets ตามสไลด์ Chart.pdf
-    // :contentReference[oaicite:9]{index=9}
     const turnoutData = useMemo(() => ({
         labels: turnout.map(i => i.label),                                           // ป้ายแกน X (เช่น "Aug 25")
         datasets: [{ label: "% Turnout", data: turnout.map(i => i.turnout), backgroundColor: COLORS[0], borderRadius: 8 }],
@@ -203,24 +209,37 @@ export default function AdminDashboard() {
 
     const deptData = useMemo(() => ({
         labels: deptDist.map(i => i.name || "ไม่ระบุ"),                              // รายชื่อแผนก
-        datasets: [{ label: "จำนวนนักศึกษา", data: deptDist.map(i => i.total), backgroundColor: COLORS }],
+            datasets: [{ 
+                label: "จำนวนนักศึกษา", 
+                data: deptDist.map(i => i.total), 
+                    backgroundColor: COLORS }],
     }), [deptDist]);
 
     const deptOptions = useMemo(() => ({
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, title: { display: true, text: "นักศึกษาตามแผนก" } },
-        scales: { x: { grid: { display: false } }, y: { beginAtZero: true } }
+        responsive: true, 
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, 
+        title: { display: true, 
+                text: "นักศึกษาตามแผนก" } },
+        scales: { 
+            x: { grid: { display: false } }, 
+            y: { beginAtZero: true } }
     }), []);
 
     const yearData = useMemo(() => ({
         labels: yearDist.map(i => i.name || "ไม่ระบุ"),                              // รายชื่อชั้นปี
-        datasets: [{ label: "จำนวนนักศึกษา", data: yearDist.map(i => i.total), backgroundColor: COLORS }],
+        datasets: [{ label: "จำนวนนักศึกษา", 
+            data: yearDist.map(i => i.total), 
+            backgroundColor: COLORS }],
     }), [yearDist]);
 
     const yearOptions = useMemo(() => ({
         indexAxis: "y",                                                              // แท่งแนวนอน
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, title: { display: true, text: "นักศึกษาตามชั้นปี" } },
+        responsive: true, 
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, 
+        title: { display: true, 
+                text: "นักศึกษาตามชั้นปี" } },
         scales: { x: { beginAtZero: true } }
     }), []);
 
@@ -274,16 +293,6 @@ export default function AdminDashboard() {
                         <Kpi title="เสร็จสิ้น" value={electionSummary?.finished ?? "-"} color="red" Icon={FlagIcon} />
                     </div>
 
-                    {/* <select
-                        className="border rounded px-2 py-1 text-sm"
-                        value={selectedElectionId || ""}
-                        onChange={(e) => setSelectedElectionId(e.target.value)}
-                    >
-                        <option value="">เลือกการเลือกตั้ง</option>
-                        {activeElections.map(e => (
-                            <option key={e.id} value={e.id}>{e.name}</option>
-                        ))}
-                    </select> */}
 
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                         {/* ตัวกรองสถานะ */}
@@ -304,16 +313,6 @@ export default function AdminDashboard() {
                         {/* เลือกรายการเลือกตั้ง (จากทุกรายการที่ผ่านฟิลเตอร์) */}
                         <div className="flex items-center gap-2">
                             <label className="text-sm text-gray-700">เลือกการเลือกตั้ง: </label>
-                            {/* <select
-                                className="border rounded px-2 py-1 text-sm min-w-56"
-                                value={selectedElectionId || ""}
-                                onChange={(e) => setSelectedElectionId(e.target.value)}
-                            >
-                                {filteredElections.length === 0 && <option value="">— ไม่มีรายการ —</option>}
-                                {filteredElections.map(e => (
-                                    <option key={e.id} value={e.id}>{e.name}</option>
-                                ))}
-                            </select> */}
                             <select
                                 className="border rounded px-2 py-1 text-sm min-w-56"
                                 value={selectedElectionId}
@@ -328,20 +327,14 @@ export default function AdminDashboard() {
                         </div>
                     </div>
 
-
                     {/* แถวบน: Turnout + Ballot */}
                     <section className="grid grid-cols-12 gap-3">
                         <Card className="col-span-12 lg:col-span-7" header="Turnout (ย้อนหลัง)">
                             <div style={{ height: 280 }}>
-                                <Bar data={turnoutData} options={turnoutOptions} />               {/* แท่ง % turnout (Chart.js) */}
+                                <Bar data={turnoutData} options={turnoutOptions} />
                             </div>
                         </Card>
 
-                        {/* <Card className="col-span-12 lg:col-span-5" header="สัดส่วนบัตรโหวต">
-                            <div style={{ height: 280 }}>
-                                <Doughnut data={ballotData} options={ballotOptions} />
-                            </div>
-                        </Card> */}
                         <Card className="col-span-12 lg:col-span-5" header="สัดส่วนบัตรโหวต">
                             {selectedElectionId && (
                                 <p className="text-center text-sm text-gray-600 mb-1">
@@ -357,13 +350,7 @@ export default function AdminDashboard() {
                                     )}
                             </div>
                         </Card>
-
-
-
                     </section>
-
-
-
 
                     {/* แถวล่าง: Dept + Year */}
                     <section className="grid grid-cols-12 gap-3">
@@ -381,7 +368,7 @@ export default function AdminDashboard() {
                     </section>
 
                     {/* ตาราง: รายการเลือกตั้ง (กำลังเปิด/ล่าสุด) */}
-                    <Card header="รายการเลือกตั้ง (กำลังเปิด/ล่าสุด)">
+                    {/* <Card header="รายการเลือกตั้ง (กำลังเปิด/ล่าสุด)">
                         <div className="overflow-x-auto">
                             <table className="min-w-full text-sm">
                                 <thead>
@@ -406,7 +393,7 @@ export default function AdminDashboard() {
                                 </tbody>
                             </table>
                         </div>
-                    </Card>
+                    </Card> */}
 
 
                 </main>

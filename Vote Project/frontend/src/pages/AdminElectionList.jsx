@@ -62,7 +62,7 @@ export default function AdminElectionList() {
             // });
             // const data = await res.json();
 
-            const data = await apiFetch("http://localhost:5000/api/elections");
+            const data = await apiFetch("/api/elections");
             if (!data) return;
 
             if (data.success) {
@@ -138,12 +138,6 @@ export default function AdminElectionList() {
         })();
     }, []);
 
-    // if (loadingMe) {
-    //     return <p className="p-10 text-center text-gray-600">กำลังตรวจสอบสิทธิ์...</p>;
-    // }
-    // if (!roles.includes("ผู้ดูแล")) {
-    //     return <p className="text-red-500 p-10 text-center">ไม่มีสิทธิ์เข้าถึงหน้านี้</p>;
-    // }
     if (loadingMe) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50">

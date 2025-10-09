@@ -26,6 +26,9 @@ export default function AdminManageCandidates() {
     const [levels, setLevels] = useState([]);
     const [filter, setFilter] = useState({ department: "", year: "", level: "" });
 
+    const [selectedDept, setSelectedDept] = useState('');
+    const [selectedYear, setSelectedYear] = useState('');
+    const [selectedLevel, setSelectedLevel] = useState('');
     // modal
     const [selectedCandidate, setSelectedCandidate] = useState(null);
 
@@ -110,6 +113,27 @@ export default function AdminManageCandidates() {
         [years, filter.level]
     );
 
+    // สร้างแผนที่ year_id -> level_id จากรายการปีที่มีอยู่
+    const yearToLevel = useMemo(() => {
+        const m = {};
+        years.forEach(y => { m[String(y.year_id)] = String(y.level_id); });
+        return m;
+    }, [years]);
+
+    // เมื่อเปลี่ยน 'ชั้นปี' ให้เซ็ต level ให้สอดคล้องอัตโนมัติ
+    // handler สำหรับการเปลี่ยนแปลงชั้นปี
+    const handleYearChange = (yearId) => {
+        // หาระดับการศึกษาที่สัมพันธ์กับชั้นปีที่เลือก
+        const nextLevel = yearToLevel[yearId] || '';
+
+        // อัพเดท filter state ทั้งชั้นปีและระดับการศึกษา
+        setFilter(prev => ({
+            ...prev,
+            year: yearId,
+            level: nextLevel
+        }));
+    };
+    
     const filtered = useMemo(() => {
         const keyword = search.trim().toLowerCase();
         return (candidates || []).filter((c) => {
@@ -209,10 +233,15 @@ export default function AdminManageCandidates() {
 
                     <select
                         value={filter.level}
-                        onChange={(e) => setFilter((f) => ({ ...f, level: e.target.value, year: "" }))}
+                        // onChange={(e) => setFilter((f) => ({ ...f, level: e.target.value, year: "" }))}
+                        onChange={(e) => setFilter(prev => ({
+                            ...prev,
+                            level: e.target.value,
+                            year: "" // รีเซ็ตชั้นปีเมื่อเปลี่ยนระดับการศึกษา
+                        }))}
                         className="border p-2 rounded bg-white border-violet-300"
                     >
-                        <option value="">เลือกระดับ</option>
+                        <option value="">เลือกระดับการศึกษา</option>
                         {levels.map((l) => (
                             <option key={l.level_id} value={l.level_id}>
                                 {l.level_name}
@@ -222,13 +251,15 @@ export default function AdminManageCandidates() {
 
                     <select
                         value={filter.year}
-                        onChange={(e) => setFilter((f) => ({ ...f, year: e.target.value }))}
+                        // onChange={(e) => setFilter((f) => ({ ...f, year: e.target.value }))}
+                        onChange={(e) => handleYearChange(e.target.value)}
                         className="border p-2 rounded bg-white border-violet-300"
                     >
                         <option value="">เลือกชั้นปี</option>
                         {filteredYears.map((y) => (
                             <option key={y.year_id} value={y.year_id}>
                                 {y.year_name}
+
                             </option>
                         ))}
                     </select>

@@ -1,15 +1,14 @@
-// ver2
 // src/components/AdminManageUser/UserFormModal.jsx
-// src/components/AdminManageUser/UserFormModal.jsx
-import React, { useState, useMemo } from "react";
-import Swal from "sweetalert2";
+import React, { useState, useMemo, useEffect } from "react";
+// import Swal from "sweetalert2";
 
 export default function UserFormModal({
   formData, setFormData,
   departments, educationLevels, years,
   onSubmit, onCancel,
   handleRoleChange,
-  existingUsers = [] // <<-- เพิ่ม: ใช้ตรวจ student_id ซ้ำจากลิสต์ผู้ใช้ปัจจุบัน
+  checkStudentid = [], // <<-- เพิ่ม: ใช้ตรวจ student_id ซ้ำจากลิสต์ผู้ใช้ปัจจุบัน
+  serverErrors = {}
 }) {
   // error รายช่อง
   const [errors, setErrors] = useState({
@@ -27,11 +26,11 @@ export default function UserFormModal({
   // สร้าง set สำหรับเช็คซ้ำแบบเร็ว (case-insensitive + trim)
   const studentIdSet = useMemo(() => {
     const s = new Set();
-    (existingUsers || []).forEach(u => {
+    (checkStudentid || []).forEach(u => {
       if (u?.student_id) s.add(String(u.student_id).trim().toLowerCase());
     });
     return s;
-  }, [existingUsers]);
+  }, [checkStudentid]);
 
   const isStudentIdDuplicate = (val) =>
     !!val && studentIdSet.has(String(val).trim().toLowerCase());
@@ -42,46 +41,58 @@ export default function UserFormModal({
   };
 
   const validate = () => {
-    const e = {};
+    const error = {};
     const fd = formData || {};
 
     // --- บังคับกรอก ---
-    if (!fd.student_id || !String(fd.student_id).trim()) e.student_id = "กรุณากรอกรหัสนักศึกษา/ชื่อผู้ใช้งาน";
-    if (!fd.password || String(fd.password).length < 8) e.password = "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร";
-    if (!fd.first_name || !String(fd.first_name).trim()) e.first_name = "กรุณากรอกชื่อ";
-    if (!fd.last_name || !String(fd.last_name).trim()) e.last_name = "กรุณากรอกนามสกุล";
-    if (!fd.email || !String(fd.email).includes("@")) e.email = "รูปแบบอีเมลไม่ถูกต้อง (ต้องมี @)";
-    if (!fd.department_id) e.department_id = "กรุณาเลือกแผนก";
-    if (!fd.level_id) e.level_id = "กรุณาเลือกระดับการศึกษา";
-    if (!fd.year_id) e.year_id = "กรุณาเลือกชั้นปี";
-    if (!Array.isArray(fd.roles) || fd.roles.length === 0) e.roles = "กรุณาเลือกอย่างน้อย 1 บทบาท";
-
-    // --- เช็ค student_id ซ้ำ (จากลิสต์ที่ส่งเข้ามา) ---
-    if (!e.student_id && isStudentIdDuplicate(fd.student_id)) {
-      e.student_id = "รหัสนี้ถูกใช้แล้ว กรุณาใช้รหัสอื่น";
+    if (!fd.student_id || !String(fd.student_id).trim()) error.student_id = "กรุณากรอกรหัสนักศึกษา/ชื่อผู้ใช้งาน";
+    if (!fd.password || String(fd.password).length < 8) error.password = "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร";
+    if (!fd.first_name || !String(fd.first_name).trim()) error.first_name = "กรุณากรอกชื่อ";
+    if (!fd.last_name || !String(fd.last_name).trim()) error.last_name = "กรุณากรอกนามสกุล";
+    if (!fd.department_id) error.department_id = "กรุณาเลือกแผนก";
+    if (!fd.level_id) error.level_id = "กรุณาเลือกระดับการศึกษา";
+    if (!fd.year_id) error.year_id = "กรุณาเลือกชั้นปี";
+    if (!Array.isArray(fd.roles) || fd.roles.length === 0) error.roles = "กรุณาเลือกอย่างน้อย 1 บทบาท";
+    if (fd.roles && fd.roles.includes(4) && fd.roles.length > 1) {
+      error.roles = "บทบาท ผู้ดูแล ไม่สามารถเลือกพร้อมบทบาทอื่นได้";
+    } else if (fd.roles && fd.roles.includes(1) && fd.roles.includes(3)) {
+      error.roles = "บทบาท นักศึกษา ไม่สามารถเลือกพร้อมบทบาท กรรมการ ได้";
+    } else if (fd.roles && fd.roles.includes(2) && fd.roles.includes(3)) {
+      error.roles = "บทบาท ผู้สมัคร ไม่สามารถเลือกพร้อมบทบาท กรรมการ ได้";
+    }
+    // --- รูปแบบข้อมูล ---
+    if (fd.student_id && !/^[a-zA-Z0-9]+$/.test(fd.student_id)) {
+      error.student_id = "รหัสนักศึกษาต้องเป็นตัวอักษรภาษาอังกฤษหรือตัวเลขเท่านั้น";
+    }
+    if (fd.email && !/^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/.test(fd.email)) {
+      error.email = "รูปแบบอีเมลไม่ถูกต้อง";
     }
 
-    setErrors(e);
-    const ok = Object.keys(e).length === 0;
-    return { ok, e };
+    // --- เช็ค student_id ซ้ำ (จากลิสต์ที่ส่งเข้ามา) ---
+    if (!error.student_id && isStudentIdDuplicate(fd.student_id)) {
+      error.student_id = "รหัสนี้ถูกใช้แล้ว กรุณาเปลี่ยนเป็นรหัสอื่น";
+    }
+
+    setErrors(error);
+    const ok = Object.keys(error).length === 0;
+    return { ok, error };
   };
 
   const handleConfirm = async () => {
     const { ok } = validate();
     if (!ok) {
-      // const msgs = Object.values(e).filter(Boolean);
-      // await Swal.fire({
-      //   icon: "warning",
-      //   title: "กรุณาตรวจสอบข้อมูล",
-      //   html: `<div style="text-align:left">${msgs.map(m => `•  ${m}`).join("<br/>")}</div>`,
-      //   confirmButtonText: "รับทราบ",
-      // });
       return;
     }
     // ผ่านทั้งหมด → ส่งต่อให้ parent ยิง API
     onSubmit();
   };
 
+  // ⬇️ เมื่อ parent ส่ง serverErrors เข้ามา (เช่น email ซ้ำ) ให้ merge เข้ากับ errors
+  useEffect(() => {
+    if (serverErrors && Object.keys(serverErrors).length) {
+      setErrors(prev => ({ ...prev, ...serverErrors }));
+    }
+  }, [serverErrors]);
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-purple-100 border border-purple-200 rounded-lg p-6 w-full max-w-3xl shadow-xl">
@@ -103,7 +114,7 @@ export default function UserFormModal({
                 // เช็คซ้ำแบบทันทีตอน blur
                 const val = String(formData.student_id || "").trim();
                 if (val && isStudentIdDuplicate(val)) {
-                  setErrors(prev => ({ ...prev, student_id: "รหัสนี้ถูกใช้แล้ว กรุณาใช้รหัสอื่น" }));
+                  setErrors(prev => ({ ...prev, student_id: "รหัสนี้ถูกใช้แล้ว กรุณาเปลี่ยนเป็นรหัสอื่น" }));
                 }
               }}
               placeholder="รหัสนักศึกษา / ชื่อผู้ใช้งาน"
@@ -172,7 +183,8 @@ export default function UserFormModal({
             <select
               className={`mt-1 border p-2 rounded w-full bg-violet-50 ${errors.department_id ? "border-red-500" : "border-violet-300"}`}
               value={formData.department_id}
-              onChange={e => onChangeField("department_id", parseInt(e.target.value))}
+              onChange={e =>
+                onChangeField("department_id", parseInt(e.target.value))}
             >
               <option value="">เลือกแผนก</option>
               {departments.map(d => (
@@ -220,7 +232,10 @@ export default function UserFormModal({
           <div className="col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">บทบาท</label>
             <div className={`flex gap-4 flex-wrap p-2 rounded ${errors.roles ? "ring-1 ring-red-500" : ""}`}>
-              {[{ id: 1, label: "นักศึกษา" }, { id: 2, label: "ผู้สมัคร" }, { id: 3, label: "กรรมการ" }, { id: 4, label: "ผู้ดูแล" }].map(role => (
+              {[{ id: 1, label: "นักศึกษา" },
+              { id: 2, label: "ผู้สมัคร" },
+              { id: 3, label: "กรรมการ" },
+              { id: 4, label: "ผู้ดูแล" }].map(role => (
                 <label key={role.id} className="inline-flex items-center gap-2">
                   <input
                     type="checkbox"

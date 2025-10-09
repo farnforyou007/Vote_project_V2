@@ -8,6 +8,7 @@ import CandidateApplicationForm from "../components/Student/CandidateApplication
 import EditElectionModal from "../components/AdminManageElections/EditElectionModal";
 import Swal from "sweetalert2";
 import { apiFetch } from "../utils/apiFetch";
+import { useNavigate } from "react-router-dom";
 
 // ===== Helper: ปี (พ.ศ.) จากวันที่ =====
 const getYearBE = (iso) => {
@@ -48,6 +49,7 @@ export default function ElectionList() {
     const [votedElections, setVotedElections] = useState([]);
     const [editingElection, setEditingElection] = useState(null);
 
+    const navigate = useNavigate();
     // ===== โหลดข้อมูล =====
     useEffect(() => {
         const fetchElections = async () => {
@@ -368,7 +370,18 @@ export default function ElectionList() {
                         )}
 
                         {roles.includes("นักศึกษา") && election.effective_status === "ENDED" && (
-                            <button className="w-full bg-purple-500 text-white py-1 rounded hover:bg-purple-600 text-[13px]">ดูผลคะแนน</button>
+                            // <button
+                            //     onClick={() => navigate(`/results/${election.election_id}`)}   // ✅ ไปหน้าผลคะแนน
+                            //     className="w-full bg-purple-500 text-white py-1 rounded hover:bg-purple-600 text-[13px]"
+                            // >
+                            //     ดูผลคะแนน
+                            // </button>
+                            <Link
+                                to={`/results/${election.election_id}`}
+                                className="block w-full text-center bg-purple-500 text-white py-1 rounded hover:bg-purple-600 text-[13px]"
+                            >
+                                ดูผลคะแนน
+                            </Link>
                         )}
 
                         {isAdmin && (
@@ -590,7 +603,7 @@ export default function ElectionList() {
                 ) : (
                     // โหมด: เลือกปีเฉพาะ (คงโครงเดิม แบ่งตามสถานะ)
                     <>
-                    
+
                         {groupedBySection.REG.length > 0 && (
                             <section className="mb-8">
                                 <h3 className="text-base font-semibold mb-3 flex items-center gap-2">

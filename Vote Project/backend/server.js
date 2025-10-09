@@ -23,7 +23,7 @@ app.use((req, res, next) => {
 
 app.use(cors({
     origin: "http://localhost:3000",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS","PATCH"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     credentials: true
 }));
 
@@ -44,9 +44,9 @@ const electionResult = require('./routes/electionResult.routes');
 
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api', electionResult);
+require('./scheduler'); 
 
-
-app.use("/api", pingRoutes);
+// app.use("/api", pingRoutes);
 
 app.use('/api', candidateRoutes);
 app.use('/api', voteRoutes);
@@ -56,6 +56,8 @@ app.use('/api/elections', electionRoutes);
 app.use('/api', eligibilityRoutes);
 
 app.use('/api', applicationRoutes);
+// ใน routes ใดก็ได้
+
 
 // -------------------- Start Server --------------------
 const PORT = process.env.PORT || 5000;

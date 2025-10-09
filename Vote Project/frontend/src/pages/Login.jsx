@@ -42,10 +42,24 @@ export default function Login() {
             let data = {};
             try { data = await res.json(); } catch { }
 
+
+
             if (res.ok && data?.success) {
                 tokenService.set(data.token);
-                const to = location.state?.redirect || "/elections";
-                navigate(to, { replace: true });
+                // const to = location.state?.redirect || "/elections";
+                // navigate(to, { replace: true });
+                const onLoginSuccess = () => {
+                    const saved = sessionStorage.getItem("returnTo");
+                    if (saved) {
+                        sessionStorage.removeItem("returnTo");
+                        navigate(saved, { replace: true });
+                    } else {
+                        // fallback มายัง state.from ถ้าใช้วิธี A ด้วย
+                        const from = location.state?.from;
+                        navigate(from || "/", { replace: true });
+                    }
+                };
+                onLoginSuccess();
                 return;
             }
 

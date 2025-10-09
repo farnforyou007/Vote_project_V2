@@ -33,23 +33,9 @@ export default function StudentProfile() {
     const initialEmail = useRef('');
 
 
-    // useEffect(() => {
-    //     setForm({
-    //         student_id: localStorage.getItem('student_id') || '',
-    //         first_name: localStorage.getItem('first_name') || '',
-    //         last_name: localStorage.getItem('last_name') || '',
-    //         email: localStorage.getItem('email') || '',
-    //         department: localStorage.getItem('department') || '',
-    //         year_level: localStorage.getItem('year_level') || '',
-    //         current_password: '',
-    //         new_password: '',
-    //         confirm_password: ''
-    //     });
-    // }, []);
-
     useEffect(() => {
         (async () => {
-            const data = await apiFetch("http://localhost:5000/api/users/me");
+            const data = await apiFetch("/api/users/me");
             if (!data?.success) return;
             const u = data.user;
             setForm(f => ({
@@ -98,21 +84,88 @@ export default function StudentProfile() {
 
 
 
+    // const handleSubmit = async (e) => {
+    //     e.preventDefault();
+
+    //     if (showPasswordFields && form.new_password !== form.confirm_password) {
+    //         return Swal.fire('ผิดพลาด', 'รหัสผ่านใหม่ไม่ตรงกัน', 'error');
+    //     }
+    //     if (!hasChanged) {
+    //         return Swal.fire('ไม่มีการเปลี่ยนแปลง', 'คุณยังไม่ได้แก้ไขข้อมูลใด ๆ', 'info');
+    //     }
+    //     // 🔒 ขอความยืนยันก่อน
+    //     const result = await Swal.fire({
+    //         title: 'คุณแน่ใจหรือไม่?',
+    //         text: 'คุณต้องการแก้ไขข้อมูลส่วนตัวของคุณ',
+    //         icon: 'question',
+    //         showCancelButton: true,
+    //         confirmButtonColor: '#16a34a',
+    //         cancelButtonColor: '#d33',
+    //         confirmButtonText: 'ยืนยัน',
+    //         cancelButtonText: 'ยกเลิก'
+    //     });
+
+    //     if (!result.isConfirmed) return;
+
+    //     // ✅ ส่งข้อมูลจริง
+    //     // const token = localStorage.getItem('token');
+    //     const payload = { email: form.email };
+    //     if (showPasswordFields && form.current_password && form.new_password) {
+    //         payload.current_password = form.current_password;
+    //         payload.new_password = form.new_password;
+    //     }
+
+    //     const data = await apiFetch(`/api/users/update-email-password`, {
+    //         method: 'PUT',
+    //         // headers: {
+    //         //     'Content-Type': 'application/json',
+    //         //     Authorization: `Bearer ${token}`,
+    //         // },
+    //         body: JSON.stringify(payload),
+    //     });
+
+    //     // const data = await res.json();
+
+    //     if (!data) return;
+
+    //     if (data.success) {
+    //         // 🎉 แจ้งว่าอัปเดตสำเร็จหลังจากยืนยัน
+    //         await Swal.fire('สำเร็จ', 'อัปเดตข้อมูลเรียบร้อยแล้ว', 'success');
+    //         localStorage.setItem('email', form.email);
+
+    //         localStorage.setItem("selectedRole", selectedRole);
+    //         setForm((prev) => ({
+    //             ...prev,
+    //             current_password: '',
+    //             new_password: '',
+    //             confirm_password: ''
+    //         }));
+    //         setShowPasswordFields(false);
+    //     } else {
+    //         Swal.fire('ผิดพลาด', data.message || 'เกิดข้อผิดพลาด', 'error');
+    //     }
+    // };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (showPasswordFields && form.new_password !== form.confirm_password) {
-            return Swal.fire('ผิดพลาด', 'รหัสผ่านใหม่ไม่ตรงกัน', 'error');
+        // ✅ client-side ตรวจรหัสผ่านอย่างน้อย 8 ตัว (กันไว้ก่อนชน backend)
+        if (showPasswordFields) {
+            if (!form.current_password || !form.new_password || !form.confirm_password) {
+                return Swal.fire('ผิดพลาด', 'กรุณากรอกรหัสผ่านให้ครบถ้วน', 'error');
+            }
+            if (form.new_password.length < 8) {
+                return Swal.fire('ผิดพลาด', 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร', 'error');
+            }
+            if (form.new_password !== form.confirm_password) {
+                return Swal.fire('ผิดพลาด', 'รหัสผ่านใหม่ไม่ตรงกัน', 'error');
+            }
         }
-        // const hasChanged =
-        //     form.email !== localStorage.getItem('email') ||
-        //     (showPasswordFields && form.current_password && form.new_password) ||
-        //     selectedRole !== roles[0];
 
         if (!hasChanged) {
             return Swal.fire('ไม่มีการเปลี่ยนแปลง', 'คุณยังไม่ได้แก้ไขข้อมูลใด ๆ', 'info');
         }
-        // 🔒 ขอความยืนยันก่อน
+
         const result = await Swal.fire({
             title: 'คุณแน่ใจหรือไม่?',
             text: 'คุณต้องการแก้ไขข้อมูลส่วนตัวของคุณ',
@@ -121,49 +174,44 @@ export default function StudentProfile() {
             confirmButtonColor: '#16a34a',
             cancelButtonColor: '#d33',
             confirmButtonText: 'ยืนยัน',
-            cancelButtonText: 'ยกเลิก'
+            cancelButtonText: 'ยกเลิก',
         });
-
         if (!result.isConfirmed) return;
 
-        // ✅ ส่งข้อมูลจริง
-        // const token = localStorage.getItem('token');
         const payload = { email: form.email };
-        if (showPasswordFields && form.current_password && form.new_password) {
+        if (showPasswordFields) {
             payload.current_password = form.current_password;
             payload.new_password = form.new_password;
         }
 
-        const data = await apiFetch(`http://localhost:5000/api/users/update-email-password`, {
-            method: 'PUT',
-            // headers: {
-            //     'Content-Type': 'application/json',
-            //     Authorization: `Bearer ${token}`,
-            // },
-            body: JSON.stringify(payload),
-        });
+        try {
+            const data = await apiFetch(`/api/users/update-email-password`, {
+                method: 'PUT',
+                body: JSON.stringify(payload),
+            });
 
-        // const data = await res.json();
+            // กรณีใช้ fetch ตรง ๆ: ถ้า apiFetch โยน error ให้เช็ค data ก่อน
+            if (!data || data.success === false) {
+                const msg = data?.message || 'เกิดข้อผิดพลาด';
+                return Swal.fire('ผิดพลาด', msg, 'error');
+            }
 
-        if (!data) return;
-
-        if (data.success) {
-            // 🎉 แจ้งว่าอัปเดตสำเร็จหลังจากยืนยัน
             await Swal.fire('สำเร็จ', 'อัปเดตข้อมูลเรียบร้อยแล้ว', 'success');
             localStorage.setItem('email', form.email);
-
             localStorage.setItem("selectedRole", selectedRole);
-            setForm((prev) => ({
-                ...prev,
-                current_password: '',
-                new_password: '',
-                confirm_password: ''
-            }));
+
+            setForm(prev => ({ ...prev, current_password: '', new_password: '', confirm_password: '' }));
             setShowPasswordFields(false);
-        } else {
-            Swal.fire('ผิดพลาด', data.message || 'เกิดข้อผิดพลาด', 'error');
+        } catch (err) {
+            // ✅ ดัก Axios/Fetch error ให้โชว์ข้อความจาก backend
+            const msg =
+                err?.response?.data?.message || // Axios style
+                err?.message ||
+                'เกิดข้อผิดพลาด';
+            Swal.fire('ผิดพลาด', msg, 'error');
         }
     };
+
 
 
     return (

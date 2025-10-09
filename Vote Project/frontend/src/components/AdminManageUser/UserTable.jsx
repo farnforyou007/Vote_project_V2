@@ -1,11 +1,13 @@
 import { FaTrash, FaCheckCircle, FaTimesCircle, FaEye, FaEdit } from "react-icons/fa";
 
-export default function UserTable({ users, rowsPerPage, onEdit, onDelete }) {
+export default function UserTable({ users, rowsPerPage, onEdit, onDelete , page}) {
+    const start = (page - 1) * rowsPerPage;
     return (
         <div className="overflow-x-auto">
             <table className="min-w-full bg-white border border-gray-300">
                 <thead className="bg-slate-200 text-left">
                     <tr>
+                        <th className="p-2">ลำดับ</th>
                         <th className="p-2">บทบาท</th>
                         <th className="p-2">รหัสนักศึกษา</th>
                         <th className="p-2">ชื่อผู้ใช้งาน</th>
@@ -17,13 +19,13 @@ export default function UserTable({ users, rowsPerPage, onEdit, onDelete }) {
                 </thead>
                 <tbody>
 
-                    {users.slice(0, rowsPerPage).map((user, index) => (
-                        // <tr key={index} className="border-t hover:bg-gray-50">
+                    {users.map((user, index) => (
                         <tr
-                            key={index}
+                            key={user.user_id}
                             className={`border-t hover:bg-zinc-200 ${index % 2 === 0 ? "bg-white" : "bg-slate-200"
                                 }`}
                         >
+                            <td className="p-2">{start + index + 1}</td>
                             <td className="p-2">{user.roles}</td>
                             <td className="p-2">{user.student_id}</td>
                             <td className="p-2">{user.first_name} {user.last_name}</td>
@@ -42,11 +44,7 @@ export default function UserTable({ users, rowsPerPage, onEdit, onDelete }) {
                                     <FaTrash size={14} />  ลบ
                                 </button>
                             </td>
-
-
                         </tr>
-
-
                     ))}
                 </tbody>
             </table>

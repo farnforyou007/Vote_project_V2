@@ -11,32 +11,20 @@ router.post('/login', userController.login);
 router.get('/departments', verifyToken, userController.getDepartments);
 router.get('/years', verifyToken, userController.getYears);
 router.get('/levels', verifyToken, userController.getLevels);
-router.get('/filtered-users', verifyToken, userController.filteredUsers);
-router.get("/me", verifyToken, userController.getProfile);
+router.get('/filtered-users', verifyToken,requireRole('ผู้ดูแล'), userController.filteredUsers);
 
-router.get('/', verifyToken,requireRole('ผู้ดูแล'),userController.getAllUsers);
+// router.get('/', verifyToken,requireRole('ผู้ดูแล'),userController.getAllUsers);
 
 router.post('/add', verifyToken,requireRole('ผู้ดูแล'), userController.addUser);
 router.put('/update/:id', verifyToken, requireRole('ผู้ดูแล'), userController.updateUser);
 router.delete('/delete/:id', verifyToken,requireRole('ผู้ดูแล'), userController.deleteUser);
+
+
+//เปลี่ยน email password หน้าโปรไฟล์ผู้ใช้
 router.put('/update-email-password', verifyToken, userController.updateEmailAndPassword);
+// ดึงข้อมูลโปรไฟล์ผู้ใช้
+router.get("/me", verifyToken, userController.getProfile);
+router.get("/students/", verifyToken, userController.getStudents);
 
-// routes/userRoutes.js หรือ studentRoutes.js
-router.get('/students', verifyToken, userController.getStudents);
-
-// router.get('/', verifyToken, requireRole('ผู้ดูแล'), userController.getAllUsers); // ใช้ตรวจ role
-
-// // เฉพาะผู้ดูแลเข้าถึงได้
-// router.get('/', verifyToken, requireRole('ผู้ดูแล'), userController.getAllUsers);
-
-// // เฉพาะกรรมการ
-// router.post('/review', verifyToken, requireRole('กรรมการ'), userController.review);
-
-// // เฉพาะนักศึกษา
-// router.post('/vote', verifyToken, requireRole('นักศึกษา'), voteController.castVote);
-
-// // เฉพาะผู้สมัคร
-// router.get('/my-campaign', verifyToken, requireRole('ผู้สมัคร'), candidateController.myProfile);
-
-
+router.get('/exists', userController.existsField);
 module.exports = router;

@@ -20,6 +20,8 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 // router.get("/", electionController.getAllElections);
+
+router.use(verifyToken); // ทุก endpoint ด้านล่างต้อง login
 router.get("/", electionController.getElections);
 router.get("/:id", electionController.getElectionById);
 router.put(
@@ -29,7 +31,7 @@ router.put(
   electionController.updateElectionWithImage
 );
 router.delete("/:id", verifyToken, electionController.deleteElection);
-router.post("/", upload.single("image"), electionController.createElection);
+router.post("/", upload.single("image"),verifyToken, electionController.createElection);
 // router.put('/:id/status', verifyToken, electionController.updateElectionStatus);
 
 router.patch(

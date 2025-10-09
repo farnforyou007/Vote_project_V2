@@ -74,6 +74,86 @@
 // }
 
 
+// // utils/apiFetch.js
+// import axios from "axios";
+// import Swal from "sweetalert2";
+// import { tokenService } from "./tokenService";
+
+// let isAlertingSession = false;
+
+// // ✅ กำหนด baseURL กลาง
+// // const api = axios.create({
+// //   baseURL: "http://localhost:5000/", // เปลี่ยนทีเดียว ใช้ทุกที่
+// //   headers: {
+// //     "Content-Type": "application/json",
+// //   },
+// // });
+
+// const API_BASE =
+//   process.env.REACT_APP_API_BASE || `${window.location.origin}`;
+
+// const api = axios.create({
+//   baseURL: API_BASE,
+
+// });
+
+// api.interceptors.request.use((config) => {
+//   const token = tokenService.get();
+//   if (token) {
+//     config.headers.Authorization = `Bearer ${token}`;
+//   }
+//   return config;
+// });
+
+// // ฟังก์ชัน wrapper
+// export async function apiFetch(endpoint, options = {}) {
+//   // try {
+//   //   const res = await api.request({
+//   //     url: endpoint,               // แค่ส่ง "/users/me" ก็พอ
+//   //     method: options.method || "GET",
+//   //     data: options.body,
+//   //     headers: options.headers,
+//   //   });
+//   try {
+//     const isFormData = options.body instanceof FormData;
+
+//     const res = await api.request({
+//       url: endpoint,
+//       method: options.method || "GET",
+//       data: options.body,
+//       headers: {
+//         ...(options.headers || {}),
+//         ...(isFormData ? {} : { "Content-Type": "application/json" }),
+//       },
+//     });
+
+//     return res.data;
+//   } catch (err) {
+//     if (err.response?.status === 401) {
+//       if (!isAlertingSession && window.location.pathname !== "/login") {
+//         isAlertingSession = true;
+//         await Swal.fire({
+//           icon: "warning",
+//           title: "เซสชันหมดอายุ",
+//           text: "กรุณาเข้าสู่ระบบใหม่",
+//           confirmButtonText: "เข้าสู่ระบบ",
+//         });
+//         tokenService.remove();
+//         window.location.href = "/login";
+//         const returnTo =
+//           window.location.pathname +
+//           window.location.search +
+//           window.location.hash;
+//         sessionStorage.setItem("returnTo", returnTo);
+//         setTimeout(() => { isAlertingSession = false; }, 1500);
+//       }
+//       return null;
+//     }
+//     throw err;
+//   }
+// }
+
+
 // utils/apiFetch.js
 import axios from "axios";
 import Swal from "sweetalert2";
@@ -81,42 +161,19 @@ import { tokenService } from "./tokenService";
 
 let isAlertingSession = false;
 
-// ✅ กำหนด baseURL กลาง
-// const api = axios.create({
-//   baseURL: "http://localhost:5000/", // เปลี่ยนทีเดียว ใช้ทุกที่
-//   headers: {
-//     "Content-Type": "application/json",
-//   },
-// });
+const API_BASE = process.env.REACT_APP_API_BASE || `${window.location.origin}`;
 
-const API_BASE =
-  process.env.REACT_APP_API_BASE || `${window.location.origin}`;
-
-const api = axios.create({
-  baseURL: API_BASE,
-  
-});
+const api = axios.create({ baseURL: API_BASE });
 
 api.interceptors.request.use((config) => {
   const token = tokenService.get();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// ฟังก์ชัน wrapper
 export async function apiFetch(endpoint, options = {}) {
-  // try {
-  //   const res = await api.request({
-  //     url: endpoint,               // แค่ส่ง "/users/me" ก็พอ
-  //     method: options.method || "GET",
-  //     data: options.body,
-  //     headers: options.headers,
-  //   });
   try {
     const isFormData = options.body instanceof FormData;
-
     const res = await api.request({
       url: endpoint,
       method: options.method || "GET",
@@ -126,10 +183,12 @@ export async function apiFetch(endpoint, options = {}) {
         ...(isFormData ? {} : { "Content-Type": "application/json" }),
       },
     });
-
-    return res.data;
+    return res.data; // 2xx -> ปกติ
   } catch (err) {
-    if (err.response?.status === 401) {
+    const status = err?.response?.status;
+
+    // 401 -> เด้งล็อกอินเหมือนเดิม
+    if (status === 401) {
       if (!isAlertingSession && window.location.pathname !== "/login") {
         isAlertingSession = true;
         await Swal.fire({
@@ -139,11 +198,26 @@ export async function apiFetch(endpoint, options = {}) {
           confirmButtonText: "เข้าสู่ระบบ",
         });
         tokenService.remove();
+        const returnTo = window.location.pathname + window.location.search + window.location.hash;
+        sessionStorage.setItem("returnTo", returnTo);
         window.location.href = "/login";
         setTimeout(() => { isAlertingSession = false; }, 1500);
       }
       return null;
     }
-    throw err;
+
+    // ✅ สำหรับ 4xx/5xx อื่น ๆ: คืน object แทนการ throw
+    if (err?.response) {
+      const data = err.response.data || {};
+      return {
+        success: false,
+        status,
+        message: data.message || `HTTP ${status}`,
+        data,
+      };
+    }
+
+    // network error จริง ๆ
+    return { success: false, status: 0, message: err.message || "Network error" };
   }
 }
