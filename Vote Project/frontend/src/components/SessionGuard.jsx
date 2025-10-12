@@ -62,9 +62,9 @@
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import { isTokenExpired } from "../utils/auth";
-import { apiFetch } from "../utils/apiFetch";
-import { tokenService } from "../utils/tokenService";
+import { isTokenExpired } from "utils/auth";
+import { apiFetch } from "utils/apiFetch";
+import { tokenService } from "utils/tokenService";
 
 export default function SessionGuard() {
     const location = useLocation();

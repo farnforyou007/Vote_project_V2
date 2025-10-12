@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { FaCheckCircle, FaTimesCircle, FaHourglassHalf, FaPen } from "react-icons/fa";
-import { formatDate, formatDateTime } from "../../utils/dateUtils";
+import { formatDate, formatDateTime } from "utils/dateUtils";
 
 export default function ApplicationCard({ app, onUpdate }) {
     const [policy, setPolicy] = useState(app.campaign_slogan || "");
@@ -21,6 +21,8 @@ export default function ApplicationCard({ app, onUpdate }) {
         e.preventDefault();
         onUpdate(app.application_id, policy, imageFile);
     };
+
+   
 
     const renderStatus = () => {
         if (app.application_status === "approved") {
@@ -65,13 +67,17 @@ export default function ApplicationCard({ app, onUpdate }) {
                 <div>
                     <h2 className="font-semibold text-xl">รายการเลือกตั้ง : {app.election_name}</h2>
                     <p className="text-sm">สถานะ: {renderStatus()}</p>
+                    {app.application_status === "rejected" && app.rejection_reason && (
+                        <p className="text-sm text-red-500 mt-1">เหตุผลที่ไม่อนุมัติ : {app.rejection_reason}</p>
+                    )}
+                    {app.application_status === "revision_requested" && app.rejection_reason && (
+                        <p className="text-sm text-red-500 mt-1">รายละเอียดที่ต้องแก้ไข : {app.rejection_reason}</p>
+                    )}
                     <p className="text-sm text-gray-500">
                         วันที่ส่งใบสมัคร : {formatDateTime(app.submitted_at)}<br />
                         วันที่ลงคะแนน : {formatDate(app.start_date)} - {formatDate(app.end_date)}
                     </p>
-                    {app.application_status === "rejected" && app.rejection_reason && (
-                        <p className="text-sm text-red-500 mt-1">เหตุผลที่ไม่อนุมัติ: {app.rejection_reason}</p>
-                    )}
+
                 </div>
             </div>
 

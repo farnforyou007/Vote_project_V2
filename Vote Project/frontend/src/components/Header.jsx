@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import logo from "../assets/logo.png";
+import logo from "assets/logo.png";
 import { FaAddressCard } from "react-icons/fa";
 import { MdHowToVote } from "react-icons/md";
 import { IoHomeSharp } from "react-icons/io5";
 import { IoLogOut, IoLogIn } from "react-icons/io5";
 import { FaClipboardCheck, FaUserCog } from "react-icons/fa";
 import { FaEye } from "react-icons/fa";
-import { apiFetch } from "../utils/apiFetch";
-import { tokenService } from "../utils/tokenService";
+import { apiFetch } from "utils/apiFetch";
+import { tokenService } from "utils/tokenService";
 import { MdDashboardCustomize } from "react-icons/md";
 import { FaGear } from "react-icons/fa6";
 export default function Header() {
@@ -50,11 +50,12 @@ export default function Header() {
         //     window.removeEventListener("role-changed", updateRole);
         // };
         (async () => {
-            const meRes = await apiFetch("http://localhost:5000/api/users/me");
+            const meRes = await apiFetch("api/users/me");
             if (meRes?.success) {
                 setMe(meRes.user);
                 setRoles(meRes.user.roles || []);
                 setSelectedRole(sessionStorage.getItem("selectedRole") || (meRes.user.roles?.[0] || ""));
+                console.log("meRes.user.roles", meRes.user);
             }
         })();
         const updateRole = () => {
@@ -65,16 +66,30 @@ export default function Header() {
     }, []);
 
 
+    // useEffect(() => {
+    //     const checkApplicationStatus = async () => {
+    //         if (selectedRole !== "นักศึกษา") return;
+    //         const data = await apiFetch("/api/applications/check");
+    //         // if (data) setHasApplied(data.hasApplied);
+    //         if (!data) return;
+    //         setHasApplied(data.hasApplied);
+    //     };
+    //     checkApplicationStatus();
+    // }, [selectedRole]);
+
     useEffect(() => {
         const checkApplicationStatus = async () => {
             if (selectedRole !== "นักศึกษา") return;
             const data = await apiFetch("/api/applications/check");
-            // if (data) setHasApplied(data.hasApplied);
-            if (!data) return;
-            setHasApplied(data.hasApplied);
+            if (!data || data.success === false) {
+                setHasApplied(false);
+                return;
+            }
+            setHasApplied(!!data.hasApplied);
         };
         checkApplicationStatus();
     }, [selectedRole]);
+
 
 
 
@@ -86,7 +101,7 @@ export default function Header() {
         setSelectedRole("");
         window.location.href = "/";
     };
-    
+
     console.log("role : ", selectedRole);
     const MenuItem = ({ href, icon, label }) => (
         <li>
@@ -222,7 +237,7 @@ export default function Header() {
 
                             />
                             <MenuItem
-                                href="/review-applications"
+                                href="/committee/elections"
                                 label="จัดการใบสมัคร"
                                 icon={<FaEye className="text-xl text-purple-700" />}
                             />
@@ -279,7 +294,7 @@ export default function Header() {
                             <MenuItem
                                 href="/admin/elections"
                                 label="จัดการรายการเลือกตั้ง"
-                                icon={<FaGear  className="text-xm text-purple-700" />}
+                                icon={<FaGear className="text-xm text-purple-700" />}
 
                             />
 

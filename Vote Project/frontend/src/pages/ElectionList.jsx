@@ -1,13 +1,14 @@
 // src/pages/ElectionList.jsx (reworked)
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import Header from "../components/Header";
-import { formatDateTime } from "../utils/dateUtils";
-import { translateStatus } from "../utils/electionStatus";
-import CandidateApplicationForm from "../components/Student/CandidateApplicationForm";
-import EditElectionModal from "../components/AdminManageElections/EditElectionModal";
+import { Header } from "components";
+
+import { formatDateTime } from "utils/dateUtils";
+import { translateStatus } from "utils/electionStatus";
+import { CandidateApplicationForm } from "components/Student";
+import { EditElectionModal } from "components/AdminManageElections";
 import Swal from "sweetalert2";
-import { apiFetch } from "../utils/apiFetch";
+import { apiFetch } from "utils/apiFetch";
 import { useNavigate } from "react-router-dom";
 
 // ===== Helper: ปี (พ.ศ.) จากวันที่ =====

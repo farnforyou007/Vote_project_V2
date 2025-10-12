@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import Header from "../Header";
-import { formatDate, formatTime, formatDateTime } from "../../utils/dateUtils";
-import { apiFetch } from "../../utils/apiFetch";
+// import Header from "../Header";
+import { Header } from "components";
+
+import { formatDate, formatTime, formatDateTime } from "utils/dateUtils";
+import { apiFetch } from "utils/apiFetch";
 
 export default function CheckEligibilityPage() {
     const [elections, setElections] = useState([]);

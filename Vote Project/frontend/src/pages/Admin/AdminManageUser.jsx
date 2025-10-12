@@ -1,12 +1,14 @@
 // // src/pages/AdminManageUsers.jsx
 // src/pages/AdminManageUsers.jsx
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import Header from "../components/Header";
-import UserFilterBar from "../components/AdminManageUser/UserFilterBar";
-import UserTable from "../components/AdminManageUser/UserTable";
-import UserFormModal from "../components/AdminManageUser/UserFormModal";
-import UserEditModal from "../components/AdminManageUser/UserEditModal";
-import { apiFetch } from "../utils/apiFetch";
+import { Header } from "components";
+import {
+    UserFilterBar,
+    UserTable,
+    UserFormModal,
+    UserEditModal,
+} from "components/AdminManageUser";
+import { apiFetch } from "utils/apiFetch";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 
@@ -430,7 +432,7 @@ export default function AdminManageUsers() {
                     onSubmit={handleUpdateUser}
                     onCancel={() => setEditingUserId(null)}
                     handleEditRoleChange={handleEditRoleChange}
-                    serverErrors={editFormErrors} 
+                    serverErrors={editFormErrors}
                 />
             )}
 

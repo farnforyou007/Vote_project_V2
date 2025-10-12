@@ -199,9 +199,10 @@
 
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import { apiFetch } from "../../utils/apiFetch";
+import { apiFetch } from "utils/apiFetch";
 import { useParams } from "react-router-dom";
-import Header from "../Header";
+// import Header from "../Header";
+import { Header } from "components";
 
 export default function VotePage() {
     const [candidates, setCandidates] = useState([]);

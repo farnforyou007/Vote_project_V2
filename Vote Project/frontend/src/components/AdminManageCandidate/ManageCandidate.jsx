@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import Header from "../Header";
+import { Header } from "components";
+
 import { FaTrash, FaEye } from "react-icons/fa";
 import Swal from "sweetalert2";
 import CandidateModal from "./CandidateModal";
 import { apiFetch } from "../../utils/apiFetch";
-import { formatDate, formatTime } from "../../utils/dateUtils";
+import { formatDate, formatTime } from "utils/dateUtils";
 
 export default function AdminManageCandidates() {
     const { id } = useParams();
@@ -26,9 +27,9 @@ export default function AdminManageCandidates() {
     const [levels, setLevels] = useState([]);
     const [filter, setFilter] = useState({ department: "", year: "", level: "" });
 
-    const [selectedDept, setSelectedDept] = useState('');
-    const [selectedYear, setSelectedYear] = useState('');
-    const [selectedLevel, setSelectedLevel] = useState('');
+    // const [selectedDept, setSelectedDept] = useState('');
+    // const [selectedYear, setSelectedYear] = useState('');
+    // const [selectedLevel, setSelectedLevel] = useState('');
     // modal
     const [selectedCandidate, setSelectedCandidate] = useState(null);
 

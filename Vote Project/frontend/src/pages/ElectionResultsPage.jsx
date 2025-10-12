@@ -11,8 +11,10 @@ import {
     Title,
 } from "chart.js";
 import { Bar, Doughnut } from "react-chartjs-2";
-import Header from "../components/Header";
-import { apiFetch } from "../utils/apiFetch";
+// import Header from "../components/Header";
+
+import { Header } from "components";
+import { apiFetch } from "utils/apiFetch";
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend, Title);
 
 /**

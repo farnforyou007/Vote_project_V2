@@ -841,6 +841,7 @@ exports.getProfile = async (req, res) => {
         const user_id = req.user.user_id;
         const sql = `
       SELECT 
+        u.user_id,
         u.student_id, u.first_name, u.last_name, u.email,
         d.department_name AS department,
         y.year_name       AS year_level,
@@ -860,6 +861,7 @@ exports.getProfile = async (req, res) => {
         return res.json({
             success: true,
             user: {
+                user_id: row.user_id,
                 student_id: row.student_id,
                 first_name: row.first_name,
                 last_name: row.last_name,

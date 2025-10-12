@@ -2,8 +2,8 @@
 // src/pages/ResultDetail.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { apiFetch } from "../utils/apiFetch";
-import Header from "../components/Header";
+import { apiFetch } from "utils/apiFetch";
+import { Header } from "components";
 import { Users, UserCheck, UserX, Ban, TrendingUp, Trophy, BarChart3, PieChart } from "lucide-react";
 
 // Chart.js

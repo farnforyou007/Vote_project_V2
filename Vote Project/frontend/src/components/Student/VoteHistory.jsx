@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "../../utils/apiFetch";
-import Header from "../Header";
+import { apiFetch } from "utils/apiFetch";
+// import Header from "../Header";
+import { Header } from "components";
 
 const beYear = (dateStr) => {
     if (!dateStr) return "";

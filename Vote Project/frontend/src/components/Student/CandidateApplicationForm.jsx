@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Swal from "sweetalert2";
-import { apiFetch } from "../../utils/apiFetch";
+import { apiFetch } from "utils/apiFetch";
 
 export default function CandidateApplicationForm({ student, electionId, onClose }) {
     const [policy, setPolicy] = useState('');

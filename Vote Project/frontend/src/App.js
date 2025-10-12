@@ -6,9 +6,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate, BrowserRouter } from 
 import Login from "./pages/Login";
 import ElectionList from "./pages/ElectionList";
 import ElectionDetail from "./pages/ElectionDetail";
-import AdminElectionList from "./pages/AdminElectionList";
-import AdminManageUser from "./pages/AdminManageUser";
-import ManageEligibilityPage from "./pages/AdminEligibleVoters";
+import AdminElectionList from "./pages/Admin/AdminElectionList";
+import AdminManageUser from "./pages/Admin/AdminManageUser";
+import ManageEligibilityPage from "./pages/Admin/AdminEligibleVoters";
 import StudentProfile from './components/Student/StudentProfile';
 import CandidateList from './components/AdminManageCandidate/ManageCandidate'
 import StudentApplicationPage from './components/Student/StudentApplicationPage'
@@ -17,9 +17,11 @@ import VotePage from './components/Student/VotePage'
 import VoteHistory from './components/Student/VoteHistory'
 import SessionGuard from "./components/SessionGuard";
 // import { apiFetch } from "./utils/apiFetch";
-import AdminDashboard from "./pages/AdminDashboard";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
 import ResultDetail from "./pages/ResultDetail";
-import ElectionResultsPage  from "./pages/ElectionResultsPage"; 
+import CommiteElectionList from "./pages/Committee/CommitElectionList";
+import CandidatesList from "./pages/Committee/CandidatesList";
+
 // import RoleGuard from './components/RoleGuard';
 function App() {
   return (
@@ -60,6 +62,12 @@ function App() {
           <Route path="/admin/election/:id/eligibility" element={<ManageEligibilityPage />} />
           <Route path="/admin/election/:id/candidate" element={<CandidateList />} />
           <Route path="/admin/dash-board" element={<AdminDashboard />} />
+
+
+          <Route path="/committee/elections" element={<CommiteElectionList />} />
+        <Route path="/committee/election/:id/applications" element={<CandidatesList />} />
+          
+          
         </Routes>
       </Router>
     </div>

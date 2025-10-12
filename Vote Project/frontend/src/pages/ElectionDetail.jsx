@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import Header from "../components/Header";
+import { Header } from "components";
+
 import { useNavigate } from "react-router-dom";
 // import { FaArrowLeft } from "react-icons/fa";
-import { apiFetch } from "../utils/apiFetch";
-import { formatDateTime } from "../utils/dateUtils";
-import { translateStatus } from "../utils/electionStatus"
+import { apiFetch } from "utils/apiFetch";
+import { formatDateTime } from "utils/dateUtils";
+import { translateStatus } from "utils/electionStatus"
 import Swal from "sweetalert2";
 
 export default function ElectionDetail() {

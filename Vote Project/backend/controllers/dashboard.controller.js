@@ -184,3 +184,98 @@ exports.getAllElections = async (req, res) => {
     res.status(500).json({ success: false, message: 'SQL Error', error: err });
   }
 };
+
+// 2.1) Turnout ต่อรายการ
+// 2.1) Turnout ต่อรายการ (เวอร์ชัน safe: no JOIN, no GROUP BY)
+exports.getTurnoutByElection = async (req, res) => {
+  try {
+    const { electionId } = req.params;
+
+    const rows = await db.query(
+      `
+      SELECT 
+        e.election_name AS name,
+        e.start_date,
+        -- นับคนมาโหวต (ไม่ซ้ำ)
+        (
+          SELECT COUNT(DISTINCT v.voter_id)
+          FROM votes v
+          WHERE v.election_id = e.election_id
+        ) AS voters,
+        -- นับผู้มีสิทธิ์ (ไม่ซ้ำ)
+        (
+          SELECT COUNT(DISTINCT ee.user_id)
+          FROM election_eligibility ee
+          WHERE ee.election_id = e.election_id
+        ) AS eligible,
+        -- เปอร์เซ็นต์ turnout
+        ROUND(
+          (
+            (SELECT COUNT(DISTINCT v2.voter_id) FROM votes v2 WHERE v2.election_id = e.election_id)
+            /
+            NULLIF((SELECT COUNT(DISTINCT ee2.user_id) FROM election_eligibility ee2 WHERE ee2.election_id = e.election_id), 0)
+          ) * 100
+        , 2) AS turnout_percent
+      FROM elections e
+      WHERE e.election_id = ?
+      `,
+      [electionId]
+    );
+
+    if (!rows.length) {
+      return res.json({ success: false, message: "ไม่พบรายการเลือกตั้งนี้" });
+    }
+    res.json({ success: true, data: rows[0] });
+  } catch (err) {
+    console.error("[getTurnoutByElection] SQL Error:", err?.sqlMessage || err?.message);
+    res.status(500).json({ success: false, message: "SQL Error", error: err });
+  }
+};
+
+
+
+// 2.2) Turnout Leaderboard (ข้ามรายการ)
+exports.getTurnoutLeaderboard = async (req, res) => {
+  try {
+    const { status, from, to, limit = 10 } = req.query;
+
+    // เงื่อนไขช่วงเวลาใช้ start_date เป็นหลัก (ปรับได้ตามจริง)
+    const conds = [];
+    const params = [];
+
+    if (status === 'REGISTERING') {
+      conds.push(`e.registration_start IS NOT NULL AND e.registration_end IS NOT NULL AND NOW() BETWEEN e.registration_start AND e.registration_end`);
+    } else if (status === 'VOTING') {
+      conds.push(`e.start_date IS NOT NULL AND e.end_date IS NOT NULL AND NOW() BETWEEN e.start_date AND e.end_date`);
+    } else if (status === 'FINISHED') {
+      conds.push(`e.end_date IS NOT NULL AND NOW() > e.end_date`);
+    }
+    if (from) { conds.push(`e.start_date >= ?`); params.push(from); }
+    if (to) { conds.push(`e.start_date <= ?`); params.push(to); }
+
+    const whereSql = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+
+    const rows = await db.query(`
+      SELECT
+        e.election_id AS id,
+        e.election_name AS name,
+        e.start_date,
+        e.end_date,
+        COUNT(DISTINCT ee.user_id) AS eligible,
+        COUNT(DISTINCT v.voter_id)  AS voters,
+        ROUND(COUNT(DISTINCT v.voter_id) / NULLIF(COUNT(DISTINCT ee.user_id),0) * 100, 2) AS turnout_percent
+      FROM elections e
+      LEFT JOIN election_eligibility ee ON ee.election_id = e.election_id
+      LEFT JOIN votes v               ON v.election_id  = e.election_id
+      ${whereSql}
+      GROUP BY e.election_id, e.election_name, e.start_date, e.end_date
+      HAVING eligible > 0
+      ORDER BY turnout_percent DESC, voters DESC
+      LIMIT ?
+    `, [...params, Number(limit)]);
+
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'SQL Error', error: err });
+  }
+};

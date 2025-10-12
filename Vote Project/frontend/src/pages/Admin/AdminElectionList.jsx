@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "../components/Header";
+// import Header from "../../components/Header";
+import { Header } from "components";
+import {
+    EditElectionButton,
+    DeleteElectionButton,
+    ApplicantsButton,
+    ManageVoteButton,
+    ViewResultButton,
+    EditElectionModal,
+    AddElectionModal,
+}   from "components/AdminManageElections";
 
-import EditElectionButton from "../components/AdminManageElections/EditElectionButton";
-import DeleteElectionButton from "../components/AdminManageElections/DeleteElectionButton";
-import ApplicantsButton from "../components/AdminManageElections/ApplicantsButton";
-
-import ManageVoteButton from "../components/AdminManageElections/ManageVoteButton";
-import ViewResultButton from "../components/AdminManageElections/ViewResultButton";
-import EditElectionModal from "../components/AdminManageElections/EditElectionModal";
-import AddElectionModal from "../components/AdminManageElections/AddElectionModal";
-import { formatDate, formatTime } from "../utils/dateUtils";
-import { translateStatus } from "../utils/electionStatus"
-import { apiFetch } from "../utils/apiFetch";
+import { formatDate, formatTime } from "utils/dateUtils";
+import { translateStatus } from "utils/electionStatus"
+import { apiFetch } from "utils/apiFetch";
 
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
@@ -53,15 +55,7 @@ export default function AdminElectionList() {
 
     const fetchElections = async () => {
         try {
-            // const token = localStorage.getItem("token");
-            // const data = await apiFetch("http://localhost:5000/api/elections", {
-            //     headers: {
-            //         "Content-Type": "application/json",
-            //         Authorization: `Bearer ${token}`,
-            //     },
-            // });
-            // const data = await res.json();
-
+            
             const data = await apiFetch("/api/elections");
             if (!data) return;
 
@@ -90,16 +84,8 @@ export default function AdminElectionList() {
     };
 
     const toggleVisibility = async (election) => {
-        // const token = localStorage.getItem("token");
+       
         try {
-            // const data = await apiFetch(`http://localhost:5000/api/elections/${election.election_id}/visibility`, {
-            //     method: "PATCH",
-            //     headers: {
-            //         "Content-Type": "application/json",
-            //         Authorization: `Bearer ${token}`,
-            //     },
-            //     body: JSON.stringify({ is_hidden: !election.is_hidden }),
-            // });
             const data = await apiFetch(`/api/elections/${election.election_id}/visibility`, {
                 method: "PATCH",
                 body: JSON.stringify({ is_hidden: !election.is_hidden }),

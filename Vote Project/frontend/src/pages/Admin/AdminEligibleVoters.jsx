@@ -1,12 +1,13 @@
 // src/pages/AdminEligibleVoters.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import Header from "../components/Header";
+import { Header } from "components";
+
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import { FaTrash } from "react-icons/fa";
-import { apiFetch } from "../utils/apiFetch";
-import { formatDate } from "../utils/dateUtils";
+import { apiFetch } from "utils/apiFetch";
+import { formatDate } from "../../utils/dateUtils";
 
 export default function ManageEligibilityPage() {
     const { id } = useParams(); // election_id

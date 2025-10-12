@@ -199,7 +199,7 @@ export async function apiFetch(endpoint, options = {}) {
         });
         tokenService.remove();
         const returnTo = window.location.pathname + window.location.search + window.location.hash;
-        sessionStorage.setItem("returnTo", returnTo);
+        localStorage.setItem("returnTo", returnTo);
         window.location.href = "/login";
         setTimeout(() => { isAlertingSession = false; }, 1500);
       }

@@ -58,32 +58,38 @@ async function resizeCandidatePhoto(req, res, next) {
     next(err);
   }
 }
-// สมัครผู้สมัคร (+อัปโหลดรูป
-router.post('/apply-candidate',verifyToken, upload.single('photo'),resizeCandidatePhoto, applyCandidate);
-
-// ✅ เส้นทางใหม่สำหรับกรรมการ
-// router.put('/applications/:id/approve', verifyToken, applicationController.approveApplication);
-// router.put('/applications/:id/reject', verifyToken, applicationController.rejectApplication);
-
-
 // เช็คว่าสมัครไปแล้วยัง
 router.get('/applications/check/:election_id', verifyToken, applicationController.checkAlreadyApplied);
+
+
+
 // เช็คว่าผู้ใช้นั้นมีใบสมัครมั้ย
 router.get('/applications/check', verifyToken, applicationController.checkApplicationStatus);
 
+// ใบสมัครทั้งหมดของฉัน
+router.get(
+  "/applications/my-all", verifyToken, applicationController.getMyApplication);
 
-// router.post('/approve/:id', verifyToken, applicationController.approveCandidate);
-
+// อัปเดตใบสมัครของฉัน (+อัปโหลดรูปใหม่)
+// router.put('/applications/update-my', verifyToken, upload.single('photo'), applicationController.updateMyApplication);
+// สมัครผู้สมัคร (+อัปโหลดรูป
+router.post('/apply-candidate', verifyToken, upload.single('photo'), resizeCandidatePhoto, applyCandidate);
 router.delete('/candidates/:id', verifyToken, applicationController.deleteCandidate);
 
 // รายชื่อผู้สมัครของการเลือกตั้ง (ใช้กับดูผู้สมัครฝั่งแอดมิน)
 router.get('/elections/:id/candidates', verifyToken, applicationController.getCandidatesByElection); // ดึงใบสมัครแต่ละรายการนั้น
+router.put('/applications/:id/request-revision', verifyToken, /* requireRole('committee'), */ applicationController.requestRevision);
+// เพิ่ม route นี้ (หรือแก้ของเดิมให้มี middleware อัปโหลดรูป)
 
-// ใบสมัครทั้งหมดของฉัน
-router.get(
-  "/applications/my-all",verifyToken,applicationController.getMyApplication );
+// application.routes.js
+router.put(
+  '/applications/update-my',
+  verifyToken,
+  upload.single('photo'),   // รับไฟล์
+  resizeCandidatePhoto,     // ★ สำคัญ: เซ็ต filename + path
+  applicationController.updateMyApplication
+);
 
-  // อัปเดตใบสมัครของฉัน (+อัปโหลดรูปใหม่)
-router.put('/applications/update-my', verifyToken, upload.single('photo'), applicationController.updateMyApplication);
+
 
 module.exports = router;

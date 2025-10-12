@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import Header from "../components/Header";
-import { tokenService } from "../utils/tokenService";
+import { Header } from "components";
+
+import { tokenService } from "utils/tokenService";
 
 export default function Login() {
     const [studentId, setStudentId] = useState("");
@@ -49,9 +50,11 @@ export default function Login() {
                 // const to = location.state?.redirect || "/elections";
                 // navigate(to, { replace: true });
                 const onLoginSuccess = () => {
-                    const saved = sessionStorage.getItem("returnTo");
+                    // const saved = sessionStorage.getItem("returnTo");
+                    const saved = localStorage.getItem("returnTo");
                     if (saved) {
-                        sessionStorage.removeItem("returnTo");
+                        // sessionStorage.removeItem("returnTo");
+                        localStorage.removeItem("returnTo");
                         navigate(saved, { replace: true });
                     } else {
                         // fallback มายัง state.from ถ้าใช้วิธี A ด้วย

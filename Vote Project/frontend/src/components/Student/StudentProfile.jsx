@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import Swal from 'sweetalert2';
-import Header from "../Header";
+// import Header from "../Header";
+import { Header } from "components";
+
 import { toast } from "react-toastify";
-import { apiFetch } from "../../utils/apiFetch";
+import { apiFetch } from "utils/apiFetch";
 
 export default function StudentProfile() {
     // const studentName = localStorage.getItem("studentName") || "";

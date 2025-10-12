@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import Header from "../Header";
-import ApplicationCard from "./ApplicationCard";
-import { apiFetch } from "../../utils/apiFetch";
+// import Header from "../Header";
+import { Header } from "components";
+
+// import { ApplicationCard } from "./ApplicationCard";
+import { ApplicationCard } from "components/Student";
+import { apiFetch } from "utils/apiFetch";
 
 export default function StudentApplicationsPage() {
     const [applications, setApplications] = useState([]);
@@ -23,6 +26,7 @@ export default function StudentApplicationsPage() {
         const formData = new FormData();
         formData.append("application_id", application_id);
         formData.append("policy", policy);
+        // formData.append("photo", file);
         if (file) formData.append("photo", file);
 
         const res = await apiFetch("/api/applications/update-my", {

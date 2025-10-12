@@ -681,28 +681,39 @@ exports.updateMyApplication = async (req, res) => {
     try {
         const user_id = req.user.user_id;
         const { application_id, policy } = req.body;
-        const photoFile = req.file; // upload.single("photo")
+        const photoFile = req.file;
+        const photoPath = photoFile
+            ? (req.file.path || `/uploads/candidates/${req.file.filename}`)
+            : null;
 
-        if (!application_id || !policy) {
-            return res.status(400).json({ success: false, message: 'Missing required fields' });
+        if (!application_id) {
+            return res.status(400).json({ success: false, message: 'Missing application_id' });
+        }
+        if (!policy && !photoPath) {
+            return res.status(400).json({ success: false, message: 'ต้องกรอกนโยบายหรือแนบรูปอย่างน้อยหนึ่งอย่าง' });
         }
 
-        const photoPath = photoFile ? `/uploads/candidates/${photoFile.filename}` : null;
+        const sets = [];
+        const params = [];
+
+        if (policy) { sets.push('campaign_slogan = ?'); params.push(policy); }
+        if (photoPath) { sets.push('photo = ?'); params.push(photoPath); }
+
+        // ทุกครั้งที่นิสิตแก้ ให้กลับไปสถานะ pending เพื่อส่งตรวจใหม่
+        sets.push(`application_status = 'pending'`,
+            `rejection_reason = NULL`,
+            `reviewed_by = NULL`,
+            `reviewed_at = NULL`,
+            `updated_at = NOW()`);
 
         const sql = `
       UPDATE applications
-         SET campaign_slogan = ?,
-             ${photoPath ? 'photo = ?,' : ''}
-             application_status = 'pending',
-             updated_at = NOW()
+         SET ${sets.join(', ')}
        WHERE application_id = ? AND user_id = ?
     `;
-        const params = photoPath
-            ? [policy, photoPath, application_id, user_id]
-            : [policy, application_id, user_id];
+        params.push(application_id, user_id);
 
-        const result = await db.query(sql, params);
-        // ถ้าต้องเช็ค affectedRows ให้ใช้ conn.query (mysql2 จะคืน metadata)
+        await db.query(sql, params);
 
         res.json({ success: true, message: 'Application updated' });
     } catch (err) {
@@ -711,3 +722,28 @@ exports.updateMyApplication = async (req, res) => {
     }
 };
 
+
+// PUT /api/applications/:id/request-revision
+exports.requestRevision = async (req, res) => {
+    try {
+        const applicationId = req.params.id;
+        const reviewerId = req.user.user_id;
+        const { reason } = req.body; // เหตุผลที่ให้แก้ไข
+
+        await db.query(
+            `UPDATE applications
+         SET application_status = 'revision_requested',
+             rejection_reason = ?,
+             reviewed_by = ?,
+             reviewed_at = NOW(),
+             updated_at = NOW()
+       WHERE application_id = ?`,
+            [reason || 'กรุณาแก้ไขข้อมูล', reviewerId, applicationId]
+        );
+
+        return res.json({ success: true, message: 'ส่งกลับให้แก้ไขแล้ว' });
+    } catch (err) {
+        console.error('requestRevision error:', err);
+        return res.status(500).json({ success: false });
+    }
+};
