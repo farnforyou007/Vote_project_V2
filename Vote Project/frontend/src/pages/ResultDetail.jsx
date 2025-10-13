@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiFetch } from "utils/apiFetch";
 import { Header } from "components";
-import { Users, UserCheck, UserX, Ban, TrendingUp, Trophy, BarChart3, PieChart } from "lucide-react";
+import { Users, UserCheck, UserX, Ban, TrendingUp, Trophy, BarChart3, PieChart, Info } from "lucide-react";
 
 // Chart.js
 import {
@@ -77,6 +77,40 @@ export default function ResultDetail() {
                     <p className="text-red-600 text-lg font-semibold">เกิดข้อผิดพลาด</p>
                     <p className="text-gray-700 text-center">{payload?.message}</p>
                     <p className="text-gray-700 text-center">{"ไม่สามารถโหลดผลการเลือกตั้งได้"}</p>
+                </div>
+            </div>
+        );
+    }
+
+    const meta = payload?.meta;
+    if (meta && meta.has_candidates === false) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#efe0ff]">
+                <div className="bg-white border border-amber-200 shadow rounded-2xl px-6 py-5 text-center">
+                    <div className="mx-auto mb-3 h-12 w-12 grid place-items-center rounded-full bg-amber-50">
+                        <UserX className="h-10 w-10 text-amber-600" />
+                    </div>
+                    <p className="text-amber-700 font-semibold text-lg">ยังไม่มีผู้ลงสมัครในรายการนี้</p>
+                    <p className="text-slate-500 text-sm mt-1">โปรดตรวจสอบอีกครั้งภายหลัง</p>
+                </div>
+            </div>
+
+        );
+    }
+
+    const hasCandidates = payload?.meta?.has_candidates;
+    const hasVotes = payload?.meta?.has_votes;
+
+    if (hasCandidates && !hasVotes) {
+        // แสดงข้อความ “ยังไม่มีคะแนน/ยังไม่ปิดเลือกตั้ง”
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#efe0ff]">
+                <div className="bg-white border border-amber-200 shadow rounded-2xl px-6 py-5 text-center">
+                    <div className="mx-auto mb-3 h-12 w-12 grid place-items-center rounded-full bg-amber-50">
+                        <Info  className="h-10 w-10 text-amber-600" />
+                    </div>
+                    <p className="text-amber-700 font-semibold text-lg">ยังไม่มีคะแนน</p>
+                    <p className="text-slate-500 text-sm mt-1">โปรดตรวจสอบอีกครั้งภายหลัง</p>
                 </div>
             </div>
         );

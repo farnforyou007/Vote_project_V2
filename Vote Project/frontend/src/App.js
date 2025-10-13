@@ -21,7 +21,7 @@ import AdminDashboard from "./pages/Admin/AdminDashboard";
 import ResultDetail from "./pages/ResultDetail";
 import CommiteElectionList from "./pages/Committee/CommitElectionList";
 import CandidatesList from "./pages/Committee/CandidatesList";
-
+import CommitDashboard from "./pages/Committee/DashboardCommit";
 // import RoleGuard from './components/RoleGuard';
 function App() {
   return (
@@ -65,7 +65,8 @@ function App() {
 
 
           <Route path="/committee/elections" element={<CommiteElectionList />} />
-        <Route path="/committee/election/:id/applications" element={<CandidatesList />} />
+          <Route path="/committee/election/:id/applications" element={<CandidatesList />} />
+          <Route path="/committee/dash-board" element={<CommitDashboard />} />
           
           
         </Routes>

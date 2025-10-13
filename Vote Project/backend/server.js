@@ -41,7 +41,9 @@ const voteRoutes = require('./routes/vote.routes');
 const pingRoutes = require("./routes/ping.routes");
 const dashboardRoutes = require('./routes/dashboard.routes');
 const electionResult = require('./routes/electionResult.routes');
+const dashboardCommit = require('./routes/dashboardCommit.routes');
 app.use('/api', applicationRoutes);
+app.use('/api/commit/dashboard', dashboardCommit);
 
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api', electionResult);
@@ -55,10 +57,9 @@ app.use('/api/users', userRoutes);
 // app.use('/api/students ', userRoutes);
 app.use('/api/elections', electionRoutes);
 app.use('/api', eligibilityRoutes);
-
 // ใน routes ใดก็ได้
 
-// app.use("/generated-pdfs", express.static(path.join(__dirname, "generated-pdfs"))); // PDF ที่สร้าง
+app.use("/generated-pdfs", express.static(path.join(__dirname, "generated-pdfs"))); // PDF ที่สร้าง
 
 // -------------------- Start Server --------------------
 const PORT = process.env.PORT || 5000;

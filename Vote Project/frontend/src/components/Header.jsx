@@ -242,6 +242,13 @@ export default function Header() {
                                 icon={<FaEye className="text-xl text-purple-700" />}
                             />
 
+                            <MenuItem
+                                href="/committee/dash-board"
+                                icon={<MdDashboardCustomize className="text-xl text-purple-700" />}
+                                label="แดชบอร์ด"
+
+                            />
+
                         </>
 
                     )}

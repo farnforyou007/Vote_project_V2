@@ -2,7 +2,7 @@
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import download from "downloadjs";
-
+import { apiFetch } from "./apiFetch";
 // ฟังก์ชันแปลงชื่อเต็มเป็นคำย่อ
 function mapLevel(level) {
   if (!level) return "";
@@ -32,7 +32,7 @@ export async function fillApplicationForm(candidate) {
     if (candidate.photo && candidate.photo.startsWith("/uploads")) {
       try {
         const imageBytes = await fetch(
-          `http://localhost:5000${candidate.photo}`
+          `${candidate.photo}`
         ).then((res) => res.arrayBuffer());
 
         let candidateImage;
@@ -62,6 +62,9 @@ export async function fillApplicationForm(candidate) {
     const fullName = candidate.name || "- -";
     const [firstName = "-", lastName = "-"] = fullName.trim().split(" ");
 
+
+
+
     // --------------------------
     // วางข้อมูลลงในฟอร์ม
     // --------------------------
@@ -88,6 +91,7 @@ export async function fillApplicationForm(candidate) {
       font: customFont,
       color: black,
     });
+
 
     page.drawText(candidate.college || "อาชีวศึกษายะลา", {
       x: 275,
@@ -122,18 +126,33 @@ export async function fillApplicationForm(candidate) {
       color: black,
     });
 
-    // ชั้นปี (ใช้คำย่อ)
-    const shortLevel = mapLevel(candidate.level);
+    // // ชั้นปี (ใช้คำย่อ)
+    // const shortLevel = mapLevel(candidate.level);
+    // page.drawText(
+    //   shortLevel && candidate.year ? `${shortLevel}${candidate.year}` : "-",
+    //   {
+    //     x: 230,
+    //     y: 508,
+    //     size: fontSize,
+    //     font: customFont,
+    //     color: black,
+    //   }
+    // );
+
+    // ส่วนก่อนหน้า
+    const levelRaw = candidate.level ?? candidate.level_name ?? "";
+    const yearRaw = candidate.year ?? candidate.year_number ?? "";
+
+    // ใช้ตัวแปร shortLevel เดิม (ถ้ามีแล้ว ไม่ต้อง let/const ใหม่อีก)
+   const shortLevel = mapLevel(String(levelRaw)); // อย่าใส่ const ซ้ำ
+    const yearText = String(yearRaw).replace(/\D/g, "");
+
+    // วาด "ชั้นปี"
     page.drawText(
-      shortLevel && candidate.year ? `${shortLevel}${candidate.year}` : "-",
-      {
-        x: 230,
-        y: 508,
-        size: fontSize,
-        font: customFont,
-        color: black,
-      }
+      yearText ? `${shortLevel}${yearText}` : "-",
+      { x: 230, y: 508, size: fontSize, font: customFont, color: black }
     );
+
 
     // ลายเซ็น
     page.drawText(fullName, {

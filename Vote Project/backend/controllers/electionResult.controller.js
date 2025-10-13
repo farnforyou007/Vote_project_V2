@@ -806,6 +806,189 @@ async function finalizeInTx(conn, electionId) {
 }
 
 /** GET /api/elections/:id/results/full */
+// module.exports.getElectionResultsFull = async function (req, res) {
+//     const electionId = Number(req.params.id);
+//     if (!electionId) return res.status(400).json({ success: false, message: 'invalid election_id' });
+
+//     try {
+//         const eRows = await db.query(
+//             `SELECT election_id, election_name, start_date, end_date, status
+//        FROM elections WHERE election_id = ?`,
+//             [electionId]
+//         );
+//         if (!eRows.length) return res.status(404).json({ success: false, message: 'Election not found' });
+//         const e = eRows[0];
+//         const ended = new Date(e.end_date) <= new Date() ||
+//             ['finished', 'เสร็จสิ้น'].includes(String(e.status || ''));
+
+//         if (ended) {
+//             const chk = await db.query(
+//                 `SELECT 1 FROM election_result WHERE election_id = ? LIMIT 1`,
+//                 [electionId]
+//             );
+//             if (!chk.length) {
+//                 const conn = await db.getConnection();
+//                 try {
+//                     await conn.beginTransaction();
+//                     await finalizeInTx(conn, electionId);
+//                     await conn.commit();
+//                 } catch (err) {
+//                     await conn.rollback();
+//                     console.error('[lazy finalize error]', err);
+//                 } finally {
+//                     conn.release();
+//                 }
+//             }
+//         }
+
+//         let results = await db.query(
+//             `
+//       SELECT er.candidate_id, er.vote_count, er.ranking, er.is_winner,
+//              CONCAT(u.first_name,' ',u.last_name) AS candidate_name,
+//              u.student_id , c.photo AS photo_url , c.candidate_number AS candidate_number,
+//              d.department_name AS department_name
+//       FROM election_result er
+//       JOIN candidates c   ON c.candidate_id = er.candidate_id
+//       JOIN applications a ON a.application_id = c.application_id
+//       JOIN users u        ON u.user_id = a.user_id
+//       LEFT JOIN department d ON d.department_id = u.department_id
+//       WHERE er.election_id = ?
+//       ORDER BY er.ranking ASC, er.vote_count DESC
+//       `,
+//             [electionId]
+//         );
+
+//         if (!results.length) {
+//             results = await db.query(
+//                 `
+//         SELECT c.candidate_id, c.photo
+//                CONCAT(u.first_name,' ',u.last_name) AS candidate_name,
+//                u.student_id,
+//                COUNT(CASE WHEN COALESCE(v.abstain,0)=0 THEN v.vote_id END) AS vote_count ,
+//                c.photo AS photo_url , c.candidate_number AS candidate_number,
+//                d.department_name AS department_name,
+//         FROM candidates c
+//         JOIN applications a ON a.application_id = c.application_id
+//         JOIN users u        ON u.user_id = a.user_id
+//         LEFT JOIN department d ON d.department_id = u.department_id
+//         LEFT JOIN votes v   ON v.candidate_id = c.candidate_id
+//                            AND v.election_id  = a.election_id
+//         WHERE a.election_id = ?
+//         GROUP BY c.candidate_id, candidate_name, u.student_id  , c.photo_url , c.candidate_number , department_name
+//         ORDER BY vote_count DESC, candidate_name ASC
+//         `,
+//                 [electionId]
+//             );
+//             // กันกรณี "ไม่มีผู้สมัครเลย" ให้ไม่พัง
+//             if (!results.length) {
+//                 results = [];
+//             } else {
+//                 let last = null, rank = 0, place = 0, top = results[0]?.vote_count || 0;
+//                 results = results.map(r => {
+//                     place += 1;
+//                     if (r.vote_count !== last) { rank = place; last = r.vote_count; }
+//                     return { ...r, ranking: rank, is_winner: r.vote_count === top };
+//                 });
+//             }
+
+//             // let last = null, rank = 0, place = 0, top = results[0]?.vote_count || 0;
+//             // results = results.map(r => {
+//             //     place += 1;
+//             //     if (r.vote_count !== last) { rank = place; last = r.vote_count; }
+//             //     return { ...r, ranking: rank, is_winner: r.vote_count === top };
+//             // });
+//         }
+
+//         const kpiRows = await db.query(
+//             `
+//       SELECT
+//         (SELECT COUNT(*) FROM election_eligibility ee WHERE ee.election_id = ?) AS eligible_total,
+//         (SELECT COUNT(DISTINCT v.voter_id) FROM votes v WHERE v.election_id = ?) AS voters_total,
+//         (SELECT COUNT(*) FROM votes v WHERE v.election_id = ? AND COALESCE(v.abstain,0)=1) AS abstain_total
+//       `,
+//             [electionId, electionId, electionId]
+//         );
+//         const k = kpiRows[0] || {};
+//         const eligible = +k.eligible_total || 0;
+//         const voters = +k.voters_total || 0;
+//         const abstain = +k.abstain_total || 0;
+//         const turnout = eligible ? +((voters / eligible) * 100).toFixed(2) : 0;
+
+//         const byYear = await db.query(
+//             `
+//       SELECT y.year_id, y.year_name AS name,
+//              COUNT(*) AS eligible,
+//              COUNT(DISTINCT v.voter_id) AS voted
+//       FROM election_eligibility ee
+//       JOIN users u  ON u.user_id = ee.user_id
+//       LEFT JOIN year_levels y ON y.year_id = u.year_id
+//       LEFT JOIN votes v ON v.election_id = ee.election_id AND v.voter_id = u.user_id
+//       WHERE ee.election_id = ?
+//       GROUP BY y.year_id, name
+//       ORDER BY y.year_id
+//       `,
+//             [electionId]
+//         );
+//         const breakdownByYear = byYear.map(r => ({
+//             name: r.name || 'ไม่ระบุ',
+//             voted: +r.voted || 0,
+//             not_voted: Math.max((+r.eligible || 0) - (+r.voted || 0), 0)
+//         }));
+
+//         const byDept = await db.query(
+//             `
+//       SELECT d.department_id, d.department_name AS name,
+//              COUNT(*) AS eligible,
+//              COUNT(DISTINCT v.voter_id) AS voted
+//       FROM election_eligibility ee
+//       JOIN users u  ON u.user_id = ee.user_id
+//       LEFT JOIN department d ON d.department_id = u.department_id
+//       LEFT JOIN votes v ON v.election_id = ee.election_id AND v.voter_id = u.user_id
+//       WHERE ee.election_id = ?
+//       GROUP BY d.department_id, name
+//       ORDER BY name
+//       `,
+//             [electionId]
+//         );
+//         const breakdownByDepartment = byDept.map(r => ({
+//             name: r.name || 'ไม่ระบุ',
+//             voted: +r.voted || 0,
+//             not_voted: Math.max((+r.eligible || 0) - (+r.voted || 0), 0)
+//         }));
+
+//         const topVotes = results[0]?.vote_count || 0;
+//         const winners = results.filter(r => r.vote_count === topVotes);
+
+//         return res.json({
+//             success: true,
+//             election: {
+//                 election_id: e.election_id,
+//                 title: e.election_name,
+//                 start_date: e.start_date,
+//                 end_date: e.end_date,
+//                 status: ended ? 'finished' : (e.status || 'ongoing')
+//             },
+//             kpis: {
+//                 eligible_total: eligible,
+//                 voters_total: voters,
+//                 abstain_total: abstain,
+//                 turnout_percent: turnout
+//             },
+//             results,
+//             winners,
+//             breakdownByYear,
+//             breakdownByDepartment
+//         });
+//     } catch (err) {
+//         console.error('[getElectionResultsFull] DB error:', {
+//             code: err?.code, errno: err?.errno, sqlState: err?.sqlState,
+//             sqlMessage: err?.sqlMessage, sql: err?.sql
+//         });
+//         return res.status(500).json({ success: false, message: 'DB Error' });
+//     }
+// };
+
+// result ver2
 module.exports.getElectionResultsFull = async function (req, res) {
     const electionId = Number(req.params.id);
     if (!electionId) return res.status(400).json({ success: false, message: 'invalid election_id' });
@@ -817,10 +1000,12 @@ module.exports.getElectionResultsFull = async function (req, res) {
             [electionId]
         );
         if (!eRows.length) return res.status(404).json({ success: false, message: 'Election not found' });
+
         const e = eRows[0];
         const ended = new Date(e.end_date) <= new Date() ||
             ['finished', 'เสร็จสิ้น'].includes(String(e.status || ''));
 
+        // lazy finalize ถ้ายังไม่มีผลในตาราง election_result แต่การเลือกตั้งจบแล้ว
         if (ended) {
             const chk = await db.query(
                 `SELECT 1 FROM election_result WHERE election_id = ? LIMIT 1`,
@@ -841,11 +1026,12 @@ module.exports.getElectionResultsFull = async function (req, res) {
             }
         }
 
+        // 1) พยายามอ่านจาก election_result ก่อน
         let results = await db.query(
             `
       SELECT er.candidate_id, er.vote_count, er.ranking, er.is_winner,
              CONCAT(u.first_name,' ',u.last_name) AS candidate_name,
-             u.student_id , c.photo AS photo_url , c.candidate_number AS candidate_number,
+             u.student_id, c.photo AS photo_url, c.candidate_number AS candidate_number,
              d.department_name AS department_name
       FROM election_result er
       JOIN candidates c   ON c.candidate_id = er.candidate_id
@@ -858,15 +1044,18 @@ module.exports.getElectionResultsFull = async function (req, res) {
             [electionId]
         );
 
+        // 2) ถ้ายังไม่มีผลลัพธ์ (เช่น ยังไม่ finalize) ให้คำนวณสดจาก votes
         if (!results.length) {
             results = await db.query(
                 `
-        SELECT c.candidate_id, c.photo
-               CONCAT(u.first_name,' ',u.last_name) AS candidate_name,
-               u.student_id,
-               COUNT(CASE WHEN COALESCE(v.abstain,0)=0 THEN v.vote_id END) AS vote_count ,
-               c.photo AS photo_url , c.candidate_number AS candidate_number,
-               d.department_name AS department_name,
+        SELECT
+          c.candidate_id,
+          CONCAT(u.first_name,' ',u.last_name) AS candidate_name,
+          u.student_id,
+          COUNT(CASE WHEN COALESCE(v.abstain,0)=0 THEN v.vote_id END) AS vote_count,
+          c.photo AS photo_url,
+          c.candidate_number AS candidate_number,
+          d.department_name AS department_name
         FROM candidates c
         JOIN applications a ON a.application_id = c.application_id
         JOIN users u        ON u.user_id = a.user_id
@@ -874,19 +1063,28 @@ module.exports.getElectionResultsFull = async function (req, res) {
         LEFT JOIN votes v   ON v.candidate_id = c.candidate_id
                            AND v.election_id  = a.election_id
         WHERE a.election_id = ?
-        GROUP BY c.candidate_id, candidate_name, u.student_id  , c.photo_url , c.candidate_number , department_name
+        GROUP BY
+          c.candidate_id, candidate_name, u.student_id, photo_url, c.candidate_number, d.department_name
         ORDER BY vote_count DESC, candidate_name ASC
         `,
                 [electionId]
             );
-            let last = null, rank = 0, place = 0, top = results[0]?.vote_count || 0;
-            results = results.map(r => {
-                place += 1;
-                if (r.vote_count !== last) { rank = place; last = r.vote_count; }
-                return { ...r, ranking: rank, is_winner: r.vote_count === top };
-            });
+
+            // ไม่มีผู้สมัครเลย → ให้เป็น [] เฉย ๆ
+            if (!results.length) {
+                results = [];
+            } else {
+                // ใส่อันดับ (competition ranking) และธงผู้ชนะ
+                let last = null, rank = 0, place = 0, top = results[0]?.vote_count || 0;
+                results = results.map(r => {
+                    place += 1;
+                    if (r.vote_count !== last) { rank = place; last = r.vote_count; }
+                    return { ...r, ranking: rank, is_winner: r.vote_count === top };
+                });
+            }
         }
 
+        // KPI / breakdowns
         const kpiRows = await db.query(
             `
       SELECT
@@ -902,6 +1100,10 @@ module.exports.getElectionResultsFull = async function (req, res) {
         const abstain = +k.abstain_total || 0;
         const turnout = eligible ? +((voters / eligible) * 100).toFixed(2) : 0;
 
+        const candidatesCount = results.length;
+        const hasCandidates = candidatesCount > 0;
+        const hasVotes = (k.voters_total ?? 0) > 0;
+        // ถ้าไม่มีผู้สมัครเลย หรือ มีผู้สมัครแต่ไม่มีใครมาโหวตเลย (voters=0) → ให้ KPI เป็น 0 หมด
         const byYear = await db.query(
             `
       SELECT y.year_id, y.year_name AS name,
@@ -965,7 +1167,13 @@ module.exports.getElectionResultsFull = async function (req, res) {
             results,
             winners,
             breakdownByYear,
-            breakdownByDepartment
+            breakdownByDepartment,
+            meta: {
+                has_candidates: hasCandidates,
+                candidates_count: candidatesCount,
+                has_votes: hasVotes,
+                empty_reason: hasCandidates ? null : 'no_candidates'
+            }
         });
     } catch (err) {
         console.error('[getElectionResultsFull] DB error:', {
@@ -975,6 +1183,7 @@ module.exports.getElectionResultsFull = async function (req, res) {
         return res.status(500).json({ success: false, message: 'DB Error' });
     }
 };
+
 
 /** GET /api/elections/results */
 module.exports.listFinishedResults = async function (req, res) {
