@@ -2,7 +2,7 @@
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import download from "downloadjs";
-import { apiFetch } from "./apiFetch";
+
 // ฟังก์ชันแปลงชื่อเต็มเป็นคำย่อ
 function mapLevel(level) {
   if (!level) return "";

@@ -7,7 +7,7 @@ const requireRole = require('../middleware/role');
 
 // router.get('/elections/:id/candidates',verifyToken, candidateController.getCandidatesByElection);
 // router.get('/elections/:id/candidates', verifyToken, applicationController.getCandidatesByElection);
-// router.get('/candidates/:id', verifyToken, candidateController.getCandidatesByElection);
+router.get('/candidates/:election_id', verifyToken, candidateController.getCandidatesByElection);
 
 
 // // งานแบ๋ม

@@ -229,7 +229,12 @@ export default function Header() {
 
                     {selectedRole === "กรรมการ" && (
                         <>
+                            <MenuItem
+                                href="/committee/dash-board"
+                                icon={<MdDashboardCustomize className="text-xl text-purple-700" />}
+                                label="แดชบอร์ด"
 
+                            />
                             <MenuItem
                                 href="/profile"
                                 icon={<FaAddressCard className="text-xl text-purple-700" />}
@@ -242,12 +247,7 @@ export default function Header() {
                                 icon={<FaEye className="text-xl text-purple-700" />}
                             />
 
-                            <MenuItem
-                                href="/committee/dash-board"
-                                icon={<MdDashboardCustomize className="text-xl text-purple-700" />}
-                                label="แดชบอร์ด"
-
-                            />
+                            
 
                         </>
 
@@ -256,7 +256,7 @@ export default function Header() {
                     {selectedRole === "ผู้สมัคร" && (
                         <>
                             <MenuItem
-                                href="/my-votes"
+                                href="/my-votes-history"
                                 label="ประวัติการใช้สิทธิ์"
                                 icon={<MdHowToVote className="text-2xl text-purple-700" />}
                             />

@@ -74,10 +74,11 @@ router.get(
 // router.put('/applications/update-my', verifyToken, upload.single('photo'), applicationController.updateMyApplication);
 // สมัครผู้สมัคร (+อัปโหลดรูป
 router.post('/apply-candidate', verifyToken, upload.single('photo'), resizeCandidatePhoto, applyCandidate);
-router.delete('/candidates/:id', verifyToken, applicationController.deleteCandidate);
+router.delete('/candidates/:id', verifyToken, applicationController.deleteApplication);
 
 // รายชื่อผู้สมัครของการเลือกตั้ง (ใช้กับดูผู้สมัครฝั่งแอดมิน)
 router.get('/elections/:id/candidates', verifyToken, applicationController.getCandidatesByElection); // ดึงใบสมัครแต่ละรายการนั้น
+
 router.put('/applications/:id/request-revision', verifyToken, /* requireRole('committee'), */ applicationController.requestRevision);
 // เพิ่ม route นี้ (หรือแก้ของเดิมให้มี middleware อัปโหลดรูป)
 

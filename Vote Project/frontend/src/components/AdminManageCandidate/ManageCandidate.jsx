@@ -5,7 +5,7 @@ import { Header } from "components";
 import { FaTrash, FaEye } from "react-icons/fa";
 import Swal from "sweetalert2";
 import CandidateModal from "./CandidateModal";
-import { apiFetch } from "../../utils/apiFetch";
+import { apiFetch } from "utils/apiFetch";
 import { formatDate, formatTime } from "utils/dateUtils";
 
 export default function AdminManageCandidates() {
@@ -134,7 +134,7 @@ export default function AdminManageCandidates() {
             level: nextLevel
         }));
     };
-    
+
     const filtered = useMemo(() => {
         const keyword = search.trim().toLowerCase();
         return (candidates || []).filter((c) => {
@@ -279,62 +279,112 @@ export default function AdminManageCandidates() {
                     </select>
                 </div>
 
-                {/* ตาราง */}
-                <table className="min-w-full bg-white border border-gray-300 text-sm">
-                    <thead className="bg-gray-200">
-                        <tr>
-                            <th className="p-2">รหัสนักศึกษา</th>
-                            <th className="p-2">ชื่อ-สกุล</th>
-                            <th className="p-2">หมายเลข</th>
-                            <th className="p-2">นโยบาย</th>
-                            <th className="p-2 text-center">สถานะ</th>
-                            <th className="p-2">ผู้อนุมัติ</th>
-                            <th className="p-2 text-center">จัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filtered.length === 0 ? (
-                            <tr>
-                                <td colSpan="7" className="text-center text-gray-500 py-4">
-                                    ไม่พบข้อมูลผู้สมัครตามที่ค้นหา
-                                </td>
+                {/* ตาราง (สไตล์เดียวกับ CandidatesList) */}
+                <div className="overflow-x-auto">
+                    <table className="min-w-full bg-white border border-gray-300 text-sm">
+                        <thead className="bg-gray-200">
+                            <tr className="text-center">
+                                <th className="p-2">รหัสนักศึกษา</th>
+                                <th className="p-2">รูป</th>
+                                <th className="p-2">ชื่อ-สกุล</th>
+                                <th className="p-2">หมายเลข</th>
+                                <th className="p-2">แผนก</th>
+                               
+                                <th className="p-2">ชั้นปี</th>
+                                <th className="p-2">นโยบาย</th>
+                                <th className="p-2">สถานะ</th>
+                                <th className="p-2">ผู้อนุมัติ</th>
+                                <th className="p-2">การจัดการ</th>
                             </tr>
-                        ) : (
-                            filtered.slice(0, limit).map((c) => (
-                                <tr key={c.candidate_id} className="border-t hover:bg-gray-50">
-                                    <td className="p-2">{c.student_id}</td>
-                                    <td className="p-2">{c.full_name}</td>
-                                    <td className="p-2">{c.application_number || "-"}</td>
-                                    <td className="p-2 max-w-sm line-clamp-2">{c.policy}</td>
-                                    <td className="p-2 text-center">
-                                        {c.status === "approved" ? (
-                                            <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs">อนุมัติ</span>
-                                        ) : c.status === "rejected" ? (
-                                            <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs">ไม่อนุมัติ</span>
-                                        ) : (
-                                            <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-xs">รอตรวจสอบ</span>
-                                        )}
-                                    </td>
-                                    <td className="p-2">{c.reviewer_name || "-"}</td>
-                                    <td className="p-2 flex gap-2 justify-center">
-                                        <button
-                                            onClick={() => setSelectedCandidate(c)}
-                                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
-                                        >
-                                            <FaEye className="inline" size={14} /> ใบสมัคร
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(c.candidate_id)}
-                                            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
-                                        >
-                                            <FaTrash className="inline" size={14} /> ลบ
-                                        </button>
-                                    </td>
+                        </thead>
+                        <tbody>
+                            {filtered.length === 0 ? (
+                                <tr>
+                                    <td colSpan={10} className="py-6 text-center text-gray-500">ไม่พบข้อมูลผู้สมัครตามที่ค้นหา</td>
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                            ) : (
+                                filtered.slice(0, limit).map((c) => {
+                                    // ฟิลด์รูป: รองรับทั้ง image_url (ฝั่ง ManageCandidate เดิม) และ photo (แบบ CandidatesList)
+                                    const photoUrl = c.photo
+                                        ? `${process.env.REACT_APP_API_ORIGIN || "http://localhost:5000"}${c.photo}`
+                                        : (c.image_url || "https://via.placeholder.com/80");
+
+                                    // ฟิลด์ชื่อ: รองรับทั้ง full_name และ name
+                                    const fullName = c.full_name || c.name || "-";
+
+                                    // ฟิลด์หมายเลข: รองรับทั้ง application_number และ number
+                                    const number = c.number ?? "-";
+
+                                    // ฟิลด์นโยบาย: รองรับทั้ง policy และ campaign_slogan
+                                    const slogan = c.policy ?? c.campaign_slogan ?? "-";
+
+                                    // แผนก/ระดับ/ปี (รองรับหลายแบบ)
+                                    const dept = (c.department || "").replace?.("แผนกวิชา", "").trim() || (c.department || "-");
+        
+                                    const yearText = c.year_name || "-" ;
+
+                                    const reviewer_name = c.reviewer_name || "-";   
+                                    // map สถานะให้เป็น unified status
+                                    const rawStatus = c.application_status || c.status || "pending";
+                                    const st = String(rawStatus).toLowerCase();
+                                    let badgeClass = "bg-yellow-100 text-yellow-700";
+                                    let badgeText = "รอการอนุมัติ";
+                                    if (st.includes("approved") || st === "อนุมัติ") {
+                                        badgeClass = "bg-green-100 text-green-700";
+                                        badgeText = "อนุมัติแล้ว";
+                                    } else if (st.includes("rejected") || st === "ไม่อนุมัติ") {
+                                        badgeClass = "bg-red-100 text-red-700";
+                                        badgeText = "ไม่อนุมัติ";
+                                    } else if (st.includes("revision")) {
+                                        badgeClass = "bg-amber-100 text-amber-700";
+                                        badgeText = "รอแก้ไข";
+                                    }
+
+                                    return (
+                                        <tr key={c.candidate_id || c.application_id} className="border-t hover:bg-gray-50">
+                                            <td className="p-2 text-center">{c.student_id}</td>
+                                            <td className="p-2">
+                                                <div className="flex items-center justify-center">
+                                                    <img src={photoUrl} alt="ผู้สมัคร" className="w-10 h-10 object-cover rounded-md" />
+                                                </div>
+                                            </td>
+                                            <td className="p-2">{fullName}</td>
+                                            <td className="p-2 text-center">{number}</td>
+                                            <td className="p-2 text-center">{dept}</td>
+                                            
+                                            <td className="p-2 text-center">{yearText}</td>
+
+                                            <td className="p-2 max-w-sm"><div className="line-clamp-2">{slogan}</div></td>
+                                            <td className="p-2 text-center">
+                                                <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${badgeClass}`}>
+                                                    {badgeText}
+                                                </div>
+                                            </td>
+                                            <td className="p-2 text-center" >{reviewer_name || "-"}</td>
+
+                                            <td className="p-2 flex gap-2 justify-center">
+                                                {/* คงปุ่มเดิมของ ManageCandidate */}
+                                                <button
+                                                    onClick={() => setSelectedCandidate(c)}
+                                                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
+                                                >
+                                                    <FaEye className="inline" size={14} /> ใบสมัคร
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(c.candidate_id)}
+                                                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+                                                >
+                                                    <FaTrash className="inline" size={14} /> ลบ
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
 
                 {selectedCandidate && (
                     <CandidateModal

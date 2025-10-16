@@ -1156,7 +1156,7 @@ module.exports.getElectionResultsFull = async function (req, res) {
                 title: e.election_name,
                 start_date: e.start_date,
                 end_date: e.end_date,
-                status: ended ? 'finished' : (e.status || 'ongoing')
+                status: ended ? 'สิ้นสุดลงการคะแนน' : (e.status || 'ongoing')
             },
             kpis: {
                 eligible_total: eligible,

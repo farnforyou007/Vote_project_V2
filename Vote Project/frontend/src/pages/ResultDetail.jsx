@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom";
 import { apiFetch } from "utils/apiFetch";
 import { Header } from "components";
 import { Users, UserCheck, UserX, Ban, TrendingUp, Trophy, BarChart3, PieChart, Info } from "lucide-react";
+import { translateStatus } from "utils/electionStatus";
 
 // Chart.js
 import {
@@ -107,7 +108,7 @@ export default function ResultDetail() {
             <div className="min-h-screen flex items-center justify-center bg-[#efe0ff]">
                 <div className="bg-white border border-amber-200 shadow rounded-2xl px-6 py-5 text-center">
                     <div className="mx-auto mb-3 h-12 w-12 grid place-items-center rounded-full bg-amber-50">
-                        <Info  className="h-10 w-10 text-amber-600" />
+                        <Info className="h-10 w-10 text-amber-600" />
                     </div>
                     <p className="text-amber-700 font-semibold text-lg">ยังไม่มีคะแนน</p>
                     <p className="text-slate-500 text-sm mt-1">โปรดตรวจสอบอีกครั้งภายหลัง</p>
@@ -200,6 +201,8 @@ export default function ResultDetail() {
                                 <span>•</span>
                                 <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                                     {election.status}
+                                    {/* {translateStatus(election.status || election.auto_status)} */}
+
                                 </span>
                             </div>
                         </div>
@@ -313,33 +316,13 @@ export default function ResultDetail() {
                                 }} />
                             </div>
                         </ChartCard>
-
-                        {/* Year Breakdown */}
-                        <ChartCard
-                            icon={<BarChart3 className="w-4 h-4" />}
-                            title="การลงคะแนนแยกตามชั้นปี"
-                        >
-                            <div className="h-[280px]">
-                                <Bar data={yearData} options={yearOptions} />
-                            </div>
-                        </ChartCard>
-
-                        {/* Department Breakdown */}
-                        <ChartCard
-                            icon={<BarChart3 className="w-4 h-4" />}
-                            title="การลงคะแนนแยกตามแผนก"
-                        >
-                            <div className="h-[280px]">
-                                <Bar data={deptData} options={deptOptions} />
-                            </div>
-                        </ChartCard>
                     </div>
 
                     {/* Results Table */}
                     <div className="bg-white rounded-2xl shadow-lg p-4 border border-purple-100">
                         <h2 className="text-base font-bold text-gray-800 mb-3 flex items-center gap-2">
                             <BarChart3 className="w-5 h-5 text-purple-600" />
-                            ตารางผลแบบสั้น
+                            ตารางผลคะแนน
                         </h2>
                         <div className="overflow-x-auto">
                             <table className="min-w-full text-sm">
@@ -391,6 +374,29 @@ export default function ResultDetail() {
                             </table>
                         </div>
                     </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* Year Breakdown */}
+                        <ChartCard
+                            icon={<BarChart3 className="w-4 h-4" />}
+                            title="การลงคะแนนแยกตามชั้นปี"
+                        >
+                            <div className="h-[280px]">
+                                <Bar data={yearData} options={yearOptions} />
+                            </div>
+                        </ChartCard>
+
+                        {/* Department Breakdown */}
+                        <ChartCard
+                            icon={<BarChart3 className="w-4 h-4" />}
+                            title="การลงคะแนนแยกตามแผนก"
+                        >
+                            <div className="h-[280px]">
+                                <Bar data={deptData} options={deptOptions} />
+                            </div>
+                        </ChartCard>
+                    </div>
+                    {/* // Results Table */}
                 </div>
             </div>
         </>

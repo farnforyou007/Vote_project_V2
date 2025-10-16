@@ -542,10 +542,10 @@ export default function CandidatesList() {
                                 <th className="p-2">ชื่อ-สกุล</th>
                                 <th className="p-2">หมายเลข</th>
                                 <th className="p-2">แผนก</th>
-                                <th className="p-2">ระดับ</th>
-                                <th className="p-2">ปี</th>
+                                <th className="p-2">ชั้นปี</th>
                                 <th className="p-2">นโยบาย</th>
                                 <th className="p-2">สถานะ</th>
+                                <th className="p-2">ผู้อนุมัติ</th>
                                 <th className="p-2">การจัดการ</th>
                             </tr>
                         </thead>
@@ -569,9 +569,8 @@ export default function CandidatesList() {
                                             </td>
                                             <td className="p-2">{c.name}</td>
                                             <td className="p-2 text-center">{c.number || "-"}</td>
-                                            <td className="p-2">{(c.department_name || c.department || "").replace("แผนกวิชา", "").trim()}</td>
-                                            <td className="p-2 text-center">{c.level_name || "-"}</td>
-                                            <td className="p-2 text-center">{c.year_number ? `ปี ${c.year_number}` : "-"}</td>
+                                            <td className="p-2 text-center">{(c.department_name || c.department || "").replace("แผนกวิชา", "").trim()}</td>
+                                            <td className="p-2 text-center">{c.year_name || "-"}</td>
                                             <td className="p-2 max-w-sm"><div className="line-clamp-2">{c.campaign_slogan || "-"}</div></td>
                                             <td className="p-2 text-center">
 
@@ -590,6 +589,7 @@ export default function CandidatesList() {
                                                 </div>
 
                                             </td>
+                                            <td className="p-2 text-center">{c.reviewer_name || "-"}</td>
                                             <td className="p-2 text-center">
                                                 <button
                                                     onClick={() => setSelectedAppId(c.application_id)}

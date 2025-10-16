@@ -1,432 +1,47 @@
-
-// งานแบ๋ม
-
 // controllers/candidateController.js
 const db = require('../models/db');
 
+exports.getCandidatesByElection = async (req, res) => {
+  try {
+    const { election_id } = req.params;
 
-// /**
-//  * ดึงผู้สมัครทั้งหมดตามการเลือกตั้ง (ยกเว้นพวกที่ถูก mark "ลบออกแล้ว")
-//  */
-// exports.getApplicationsByElection = async (req, res) => {
-//   const { id } = req.params; // election_id
-//   try {
-//     const [rows] = await db.query(
-//       `SELECT 
-//           a.application_id,
-//           u.student_id,
-//           CONCAT(u.first_name, ' ', u.last_name) AS name,
-//           d.department_name AS department,
-//           y.year_number,
-//           e.level_name,
-//           a.campaign_slogan,
-//           a.photo,
-//           a.application_status,
-//           a.rejection_reason,
-//           a.rejection_count,
-//           c.candidate_number
-//        FROM applications a
-//        JOIN users u ON a.user_id = u.user_id
-//        JOIN department d ON u.department_id = d.department_id
-//        JOIN year_levels y ON u.year_id = y.year_id
-//        JOIN education_levels e ON y.level_id = e.level_id
-//        LEFT JOIN candidates c ON a.application_id = c.application_id
-//        WHERE a.election_id = ?
-//          AND NOT (a.application_status = 'rejected' AND a.rejection_reason = 'ลบออกแล้ว')
-//        ORDER BY a.application_id ASC`,
-//       [id]
-//     );
-//     return res.status(200).json(rows);
-//   } catch (err) {
-//     console.error("Error getApplicationsByElection:", err);
-//     res.status(500).json({ error: "Database error" });
-//   }
-// };
+    const sql = `
+      SELECT
+        c.candidate_id,
+        c.candidate_number,
+        COALESCE(c.campaign_slogan, a.campaign_slogan) AS campaign_slogan,
+        c.status,
+        COALESCE(c.photo, a.photo) AS photo,
+        u.first_name,
+        u.last_name,
+        COALESCE(d.department_name, '') AS department_name,
+        COALESCE(y.year_number, NULL) AS year_level
+      FROM candidates c
+      JOIN applications a   ON c.application_id = a.application_id
+      JOIN users u          ON a.user_id = u.user_id
+      LEFT JOIN department d   ON u.department_id = d.department_id
+      LEFT JOIN year_levels y  ON u.year_id = y.year_id
+      WHERE a.election_id = ?
+      ORDER BY c.candidate_number ASC
+    `;
 
+    const rows = pickRows(await db.query(sql, [election_id])) || [];
+    const mapped = rows.map(r => ({
+      candidate_id: r.candidate_id,
+      number: r.candidate_number,
+      full_name: `${r.first_name} ${r.last_name}`,
+      image_url: r.photo,
+      department: r.department_name,
+      year_level: r.year_level,
+      policy: r.campaign_slogan,
+    }));
 
-
-// /**
-//  * ดึงรายละเอียดผู้สมัครรายคน
-//  */
-// exports.getApplicationById = async (req, res) => {
-//   const { id } = req.params; // application_id
-//   try {
-//     const [rows] = await db.query(
-//       `SELECT 
-//           a.application_id,
-//           u.student_id,
-//           CONCAT(u.first_name, ' ', u.last_name) AS name,
-
-//           u.email,
-//           d.department_name AS department,
-//           y.year_number,
-//           e.level_name,
-//           a.campaign_slogan,
-//           a.photo,
-//           a.application_status,
-//           a.rejection_reason,
-//           a.rejection_count,
-//           c.candidate_number,
-//           a.election_id
-//        FROM applications a
-//        JOIN users u ON a.user_id = u.user_id
-//        JOIN department d ON u.department_id = d.department_id
-//        JOIN year_levels y ON u.year_id = y.year_id
-//        JOIN education_levels e ON y.level_id = e.level_id
-//        LEFT JOIN candidates c ON a.application_id = c.application_id
-//        WHERE a.application_id = ?`,
-//       [id]
-//     );
-
-//     if (rows.length === 0) {
-//       return res.status(404).json({ error: "Application not found" });
-//     }
-//     res.json(rows[0]);
-//   } catch (err) {
-//     console.error("Error getApplicationById:", err);
-//     res.status(500).json({ error: "Database error" });
-//   }
-// };
-
-// /**
-//  * ดึงรายชื่อแผนก
-//  */
-// exports.getDepartments = async (req, res) => {
-//   try {
-//     const [rows] = await db.query(
-//       "SELECT department_id, department_name FROM department"
-//     );
-//     res.json(rows);
-//   } catch (err) {
-//     console.error("Error getDepartments:", err);
-//     res.status(500).json({ error: "Database error" });
-//   }
-// };
-
-// // /**
-// //  *อนุมัติผู้สมัคร
-// //  */
-// // exports.approveApplication = async (req, res) => {
-// //   const { id } = req.params; // application_id
-// //   try {
-// //     // หา election_id + campaign_slogan จาก application
-// //     const [rows] = await db.query(
-// //       "SELECT election_id, campaign_slogan FROM applications WHERE application_id = ?",
-// //       [id]
-// //     );
-// //     if (rows.length === 0) {
-// //       return res.status(404).json({ error: "Application not found" });
-// //     }
-// //     const { election_id, campaign_slogan } = rows[0];
-
-// //     // หาเบอร์ถัดไป
-// //     const [maxRow] = await db.query(
-// //       `SELECT MAX(number) AS maxNum
-// //        FROM candidates c
-// //        JOIN applications a ON c.application_id = a.application_id
-// //        WHERE a.election_id = ?`,
-// //       [election_id]
-// //     );
-// //     const nextNumber = (maxRow[0].maxNum || 0) + 1;
-
-// //     // อัปเดต applications
-// //     await db.query(
-// //       `UPDATE applications
-// //        SET application_status = 'approved',
-// //            rejection_reason = NULL
-// //        WHERE application_id = ?`,
-// //       [id]
-// //     );
-
-// //     // เพิ่มเข้า candidates (ถ้ายังไม่มี) และเก็บ campaign_slogan ด้วย
-// //     await db.query(
-// //       `INSERT INTO candidates (application_id, number, status, campaign_slogan)
-// //        VALUES (?, ?, 'approved', ?)
-// //        ON DUPLICATE KEY UPDATE 
-// //           number = VALUES(number), 
-// //           status = 'approved',
-// //           campaign_slogan = VALUES(campaign_slogan)`,
-// //       [id, nextNumber, campaign_slogan]
-// //     );
-
-// //     res.json({ message: "อนุมัติผู้สมัครเรียบร้อยแล้ว", number: nextNumber });
-// //   } catch (err) {
-// //     console.error("Error approveApplication:", err);
-// //     res.status(500).json({ error: "Database error" });
-// //   }
-// // };
-
-// // /**
-// //  * ปฏิเสธผู้สมัคร
-// //  */
-// // exports.rejectApplication = async (req, res) => {
-// //   const { id } = req.params; // application_id
-// //   const { reason } = req.body;
-
-// //   try {
-// //     await db.query(
-// //       `UPDATE applications
-// //        SET application_status = 'rejected',
-// //            rejection_reason = ?,
-// //            rejection_count = rejection_count + 1
-// //        WHERE application_id = ?`,
-// //       [reason || "ไม่ระบุ", id]
-// //     );
-
-// //     res.json({ message: "ปฏิเสธผู้สมัครเรียบร้อยแล้ว" });
-// //   } catch (err) {
-// //     console.error("Error rejectApplication:", err);
-// //     res.status(500).json({ error: "Database error" });
-// //   }
-// // };
-
-// /**
-//  * อนุมัติผู้สมัคร
-//  */
-// exports.approveApplication = async (req, res) => {
-//   const { id } = req.params; // application_id
-//   const committeeId = req.user?.user_id || 46; // ใช้ mock id 1 ถ้ายังไม่มีระบบล็อกอิน
-
-//   try {
-//     // หา election_id + campaign_slogan จาก application
-//     const [rows] = await db.query(
-//       "SELECT election_id, campaign_slogan FROM applications WHERE application_id = ?",
-//       [id]
-//     );
-//     if (rows.length === 0) {
-//       return res.status(404).json({ error: "Application not found" });
-//     }
-//     const { election_id, campaign_slogan } = rows[0];
-
-//     // หาเบอร์ถัดไป
-//     const [maxRow] = await db.query(
-//       `SELECT MAX(candidate_number) AS maxNum
-//        FROM candidates c
-//        JOIN applications a ON c.application_id = a.application_id
-//        WHERE a.election_id = ?`,
-//       [election_id]
-//     );
-//     const nextNumber = (maxRow[0].maxNum || 0) + 1;
-
-//     // อัปเดต applications
-//     await db.query(
-//       `UPDATE applications
-//        SET application_status = 'approved',
-//            rejection_reason = NULL,
-//            reviewed_by = ?,        -- 🟩 เพิ่มตรงนี้
-//            reviewed_at = NOW()     -- 🟩 เพิ่มตรงนี้
-//        WHERE application_id = ?`,
-//       [committeeId, id] // 🟩 เพิ่มค่า reviewed_by ใน parameter
-//     );
-
-//     // เพิ่มเข้า candidates (ถ้ายังไม่มี) และเก็บ campaign_slogan ด้วย
-//     await db.query(
-//       `INSERT INTO candidates (application_id, candidate_number, status, campaign_slogan, reviewed_by)  -- 🟩 เพิ่ม reviewed_by, created_at
-//        VALUES (?, ?, 'approved', ?, ?)                                                             -- 🟩 เพิ่มค่า reviewed_by
-//        ON DUPLICATE KEY UPDATE 
-//           candidate_number = VALUES(candidate_number), 
-//           status = 'approved',
-//           campaign_slogan = VALUES(campaign_slogan),
-//           reviewed_by = VALUES(reviewed_by)`
-//       ,
-//       [id, nextNumber, campaign_slogan, committeeId] // 🟩 เพิ่ม parameter
-//     );
-
-//     // ✅ เพิ่มบันทึกลง committee_reviews
-//     await db.query(
-//       `INSERT INTO committee_reviews (candidate_id, committee_id, decision, reviewed_at)
-//        VALUES (
-//          (SELECT candidate_id FROM candidates WHERE application_id = ?),
-//          ?,
-//          'approve',
-//          NOW()
-//        )`,
-//       [id, committeeId]
-//     );
-
-//     res.json({ message: "อนุมัติผู้สมัครเรียบร้อยแล้ว", number: nextNumber });
-//   } catch (err) {
-//     console.error("Error approveApplication:", err);
-//     res.status(500).json({ error: "Database error" });
-//   }
-// };
-
-// /**
-//  * ปฏิเสธผู้สมัคร
-//  */
-// exports.rejectApplication = async (req, res) => {
-//   const { id } = req.params; // application_id
-//   const { reason } = req.body;
-//   const committeeId = req.user?.user_id || 1; // mock id = 1 ถ้ายังไม่มีระบบล็อกอิน
-
-//   try {
-//     // อัปเดตสถานะใน applications
-//     await db.query(
-//       `UPDATE applications
-//        SET application_status = 'rejected',
-//            rejection_reason = ?,
-//            rejection_count = rejection_count + 1,
-//            reviewed_by = ?,         
-//            reviewed_at = NOW()      
-//        WHERE application_id = ?`,
-//       [reason || "ไม่ระบุ", committeeId, id] // 🟩 เพิ่มค่า reviewed_by
-//     );
-
-//     // ✅ เพิ่มบันทึกลง committee_reviews
-//     await db.query(
-//       `INSERT INTO committee_reviews (candidate_id, committee_id, decision, reviewed_at)
-//        VALUES (
-//          (SELECT candidate_id FROM candidates WHERE application_id = ?),
-//          ?,
-//          'reject',
-//          NOW()
-//        )`,
-//       [id, committeeId]
-//     );
-
-//     // 🟩 เพิ่มส่วนอัปเดต candidates ถ้ามี record เดิมอยู่
-//     await db.query(
-//       `UPDATE candidates
-//        SET status = 'rejected',
-//            reviewed_by = ?, 
-//        WHERE application_id = ?`,
-//       [committeeId, id]
-//     );
-
-//     res.json({ message: "ปฏิเสธผู้สมัครเรียบร้อยแล้ว" });
-//   } catch (err) {
-//     console.error("Error rejectApplication:", err);
-//     res.status(500).json({ error: "Database error" });
-//   }
-// };
-
-// /**
-//  *  อัปเดตผู้สมัคร (เช่น แก้นโยบาย) → กลับไป pending
-//  */
-// exports.updateApplication = async (req, res) => {
-//   const { id } = req.params; // application_id
-//   const { campaign_slogan } = req.body;
-
-//   try {
-//     await db.query(
-//       `UPDATE applications
-//        SET campaign_slogan = ?,
-//            application_status = 'pending',
-//            rejection_reason = NULL
-//        WHERE application_id = ?`,
-//       [campaign_slogan, id]
-//     );
-
-//     res.json({ message: "อัปเดตข้อมูลแล้ว และสถานะกลับเป็น pending" });
-//   } catch (err) {
-//     console.error("Error updateApplication:", err);
-//     res.status(500).json({ error: "Database error" });
-//   }
-// };
-
-// /**
-//  * ลบผู้สมัคร (ถ้าโดน reject >= 2 ครั้ง) → เปลี่ยนเป็น rejected + mark "ลบออกแล้ว"
-//  */
-// exports.deleteApplication = async (req, res) => {
-//   const { id } = req.params;
-
-//   try {
-//     const [rows] = await db.query(
-//       "SELECT rejection_count FROM applications WHERE application_id = ?",
-//       [id]
-//     );
-//     if (rows.length === 0) {
-//       return res.status(404).json({ error: "Application not found" });
-//     }
-
-//     if (rows[0].rejection_count < 2) {
-//       return res
-//         .status(400)
-//         .json({ error: "ยังไม่สามารถลบได้ ต้องถูกปฏิเสธอย่างน้อย 2 ครั้ง" });
-//     }
-
-//     // แทนที่จะ DELETE → mark ว่า "ลบออกแล้ว"
-//     await db.query(
-//       `UPDATE applications
-//        SET application_status = 'rejected',
-//            rejection_reason = 'ลบออกแล้ว'
-//        WHERE application_id = ?`,
-//       [id]
-//     );
-
-//     res.json({ message: "ทำการลบผู้สมัครออกจากหน้าตรวจสอบแล้ว" });
-//   } catch (err) {
-//     console.error("Error deleteApplication:", err);
-//     res.status(500).json({ error: "Database error" });
-//   }
-// };
-
-// //บันทึกผลการตรวจสอบของกรรมการ
-// exports.recordCommitteeReview = async (req, res) => {
-//   const { candidate_id, decision } = req.body; // รับค่าจาก frontend
-//   const committee_id = req.user?.user_id || 1; // ถ้ามีระบบล็อกอินจริง → ใช้ user_id จริง, ถ้ายังไม่มี → ใช้ mock id=1
-
-//   // ตรวจสอบค่าเบื้องต้น
-//   if (!candidate_id || !decision) {
-//     return res.status(400).json({ message: "กรุณาระบุ candidate_id และ decision" });
-//   }
-
-//   try {
-//     // 1️⃣ บันทึกประวัติการตรวจลงในตาราง committee_reviews
-//     await db.query(
-//       `INSERT INTO committee_reviews (candidate_id, committee_id, decision, reviewed_at)
-//        VALUES (?, ?, ?, NOW())`,
-//       [candidate_id, committee_id, decision]
-//     );
-
-//     // 2️⃣ อัปเดตสถานะและ reviewer ในตาราง candidates
-//     await db.query(
-//       `UPDATE candidates 
-//        SET status = ?, reviewed_by = ?, 
-//            created_at = created_at, updated_at = NOW() 
-//        WHERE candidate_id = ?`,
-//       [
-//         decision === "approve" ? "approved" : "rejected",
-//         committee_id,
-//         candidate_id,
-//       ]
-//     );
-
-//     // 3️⃣ อัปเดตสถานะในตาราง applications
-//     // (โดยดึง application_id จาก candidates)
-//     await db.query(
-//       `UPDATE applications 
-//        SET application_status = ?, reviewed_by = ?, reviewed_at = NOW()
-//        WHERE application_id = (
-//          SELECT application_id FROM candidates WHERE candidate_id = ?
-//        )`,
-//       [
-//         decision === "approve" ? "approved" : "rejected",
-//         committee_id,
-//         candidate_id,
-//       ]
-//     );
-
-//     // ✅ ตอบกลับเมื่อบันทึกสำเร็จ
-//     res.json({
-//       message: "✅ บันทึกผลการตรวจสอบเรียบร้อย",
-//       candidate_id,
-//       decision,
-//       reviewed_by: committee_id,
-//     });
-//   } catch (err) {
-//     console.error("❌ Error recordCommitteeReview:", err);
-//     res.status(500).json({
-//       message: "เกิดข้อผิดพลาดในการบันทึกผลการตรวจสอบ",
-//       error: err.message,
-//     });
-//   }
-// };
-
-// version แก้
-
-// controllers/candidate.controller.js
-// const db = require("../models/db");
+    return res.json({ success: true, candidates: mapped });
+  } catch (err) {
+    console.error('[getCandidatesByElection]', err);
+    return res.status(500).json({ success: false, message: 'ไม่สามารถดึงข้อมูลผู้สมัครได้' });
+  }
+};
 
 // รองรับทั้ง mysql2/promise ([rows]) และไลบรารีที่คืน rows ตรง ๆ
 const pickRows = (result) =>
@@ -446,20 +61,24 @@ exports.getApplicationsByElection = async (req, res) => {
     u.student_id,
     CONCAT(u.first_name, ' ', u.last_name) AS name,
     COALESCE(d.department_name, '') AS department,
-    COALESCE(y.year_number, NULL)    AS year_number,
+    COALESCE(y.year_name, NULL)    AS year_name,
     COALESCE(l.level_name, '')       AS level_name,
     a.campaign_slogan,
     a.photo,
     a.application_status,
     a.rejection_reason,
     a.rejection_count,
-    c.candidate_number AS number
+    c.candidate_number AS number,
+    COALESCE(CONCAT(r.first_name, ' ', r.last_name), '') AS reviewer_name
+
   FROM applications a
   JOIN users u             ON a.user_id = u.user_id
   LEFT JOIN department d   ON u.department_id = d.department_id
   LEFT JOIN year_levels y  ON u.year_id = y.year_id
   LEFT JOIN education_levels l ON y.level_id = l.level_id
   LEFT JOIN candidates c   ON c.application_id = a.application_id
+  LEFT JOIN users r ON a.reviewed_by = r.user_id
+
   WHERE a.election_id = ?
   ORDER BY
     CASE WHEN c.candidate_number IS NULL THEN 1 ELSE 0 END,
@@ -521,15 +140,20 @@ exports.getApplicationById = async (req, res) => {
 /* POST /api/applications/:id/approve
 /* อนุมัติใบสมัคร → สร้าง/อัปเดตหมายเลขผู้สมัครและคืน { number }
 /* ------------------------------------------------------------------ */
+
 // exports.approveApplication = async (req, res) => {
 //   const conn = db.getConnection ? await db.getConnection() : db;
 //   try {
 //     const { id: appId } = req.params;
+//     const committeeId = req.user?.user_id ?? 0; // ผู้ตรวจ/อนุมัติ
 
-//     // หา election_id ของใบสมัคร
+//     // 1) เอา election_id + ข้อมูลที่ต้อง sync ไปเก็บใน candidates
 //     const appRow = pickRows(
 //       await conn.query(
-//         `SELECT election_id FROM applications WHERE application_id = ?  LIMIT 1`,
+//         `SELECT election_id, campaign_slogan, photo 
+//            FROM applications 
+//           WHERE application_id = ? 
+//           LIMIT 1`,
 //         [appId]
 //       )
 //     )[0];
@@ -537,7 +161,7 @@ exports.getApplicationById = async (req, res) => {
 
 //     if (conn.beginTransaction) await conn.beginTransaction();
 
-//     // เลขล่าสุดในเลือกตั้งนี้
+//     // 2) หาเบอร์ผู้สมัครล่าสุดในเลือกตั้งนี้
 //     const maxRow = pickRows(
 //       await conn.query(
 //         `SELECT MAX(c.candidate_number) AS max_no
@@ -549,25 +173,58 @@ exports.getApplicationById = async (req, res) => {
 //     )[0];
 //     const nextNumber = (maxRow?.max_no || 0) + 1;
 
-//     // upsert ผู้สมัคร
+//     // 3) upsert ผู้สมัคร (ให้ DB ใส่ created_at/updated_at เอง)
 //     const exist = pickRows(
-//       await conn.query(`SELECT candidate_id FROM candidates WHERE application_id = ? LIMIT 1`, [appId])
+//       await conn.query(
+//         `SELECT candidate_id FROM candidates WHERE application_id = ? LIMIT 1`,
+//         [appId]
+//       )
 //     )[0];
 
 //     if (exist) {
 //       await conn.query(
-//         `UPDATE candidates SET candidate_number = ?, status = 'approved' WHERE candidate_id = ?`,
-//         [nextNumber, exist.candidate_id]
+//         `UPDATE candidates 
+//             SET candidate_number = ?, 
+//                 status = 'approved',
+//                 campaign_slogan = ?, 
+//                 photo = ?, 
+//                 reviewed_by = ?
+//           WHERE candidate_id = ?`,
+//         [nextNumber, appRow.campaign_slogan ?? null, appRow.photo ?? null, committeeId, exist.candidate_id]
 //       );
+//       // หมายเหตุ: ถ้ามีคอลัมน์ updated_at TIMESTAMP ... ON UPDATE CURRENT_TIMESTAMP
+//       // DB จะอัปเดตเวลาให้เอง ไม่ต้องเซ็ตด้วยมือ
 //     } else {
 //       await conn.query(
-//         `INSERT INTO candidates (application_id, candidate_number, status) VALUES (?, ?, 'approved')`,
-//         [appId, nextNumber]
+//         `INSERT INTO candidates 
+//             (application_id, candidate_number, status, campaign_slogan, photo, reviewed_by)
+//          VALUES (?, ?, 'approved', ?, ?, ?)`,
+//         [appId, nextNumber, appRow.campaign_slogan ?? null, appRow.photo ?? null, committeeId]
 //       );
+//       // หมายเหตุ: created_at จะถูกเซ็ตอัตโนมัติจาก DEFAULT CURRENT_TIMESTAMP
 //     }
 
-//     // sync สถานะใน applications
-//     await conn.query(`UPDATE applications SET application_status = 'approved' WHERE application_id = ?`, [appId]);
+//     // 4) sync สถานะ + reviewer ใน applications (reviewed_at ใช้ CURRENT_TIMESTAMP)
+//     await conn.query(
+//       `UPDATE applications 
+//           SET application_status = 'approved',
+//               reviewed_by = ?,
+//               reviewed_at = CURRENT_TIMESTAMP
+//         WHERE application_id = ?`,
+//       [committeeId, appId]
+//     );
+
+//     // 5) ✅ เพิ่ม record ในตาราง committee_reviews
+//     await conn.query(
+//       `INSERT INTO committee_reviews (candidate_id, committee_id, decision, reviewed_at)
+//    VALUES (
+//      (SELECT candidate_id FROM candidates WHERE application_id = ?),
+//      ?,
+//      'approve',
+//      CURRENT_TIMESTAMP
+//    )`,
+//       [appId, committeeId]
+//     );
 
 //     if (conn.commit) await conn.commit();
 //     return res.status(200).json({ number: nextNumber });
@@ -580,27 +237,34 @@ exports.getApplicationById = async (req, res) => {
 //   }
 // };
 
+//ver2
+// controllers/candidate.controller.js (หรือไฟล์ที่คุณวางฟังก์ชันนี้อยู่)
 exports.approveApplication = async (req, res) => {
   const conn = db.getConnection ? await db.getConnection() : db;
+  const pickRows = (result) =>
+    Array.isArray(result) && Array.isArray(result[0]) ? result[0] : result;
+
   try {
     const { id: appId } = req.params;
-    const committeeId = req.user?.user_id ?? 0; // ผู้ตรวจ/อนุมัติ
+    const committeeId = req.user?.user_id ?? 0;
 
-    // 1) เอา election_id + ข้อมูลที่ต้อง sync ไปเก็บใน candidates
+    if (conn.beginTransaction) await conn.beginTransaction();
+
+    // ✅ ดึง user_id มาด้วย
     const appRow = pickRows(
       await conn.query(
-        `SELECT election_id, campaign_slogan, photo 
-           FROM applications 
-          WHERE application_id = ? 
+        `SELECT election_id, user_id, campaign_slogan, photo
+           FROM applications
+          WHERE application_id = ?
           LIMIT 1`,
         [appId]
       )
     )[0];
-    if (!appRow) return res.status(404).json({ message: "Application not found" });
+    if (!appRow) {
+      if (conn.rollback) await conn.rollback();
+      return res.status(404).json({ message: "Application not found" });
+    }
 
-    if (conn.beginTransaction) await conn.beginTransaction();
-
-    // 2) หาเบอร์ผู้สมัครล่าสุดในเลือกตั้งนี้
     const maxRow = pickRows(
       await conn.query(
         `SELECT MAX(c.candidate_number) AS max_no
@@ -612,7 +276,6 @@ exports.approveApplication = async (req, res) => {
     )[0];
     const nextNumber = (maxRow?.max_no || 0) + 1;
 
-    // 3) upsert ผู้สมัคร (ให้ DB ใส่ created_at/updated_at เอง)
     const exist = pickRows(
       await conn.query(
         `SELECT candidate_id FROM candidates WHERE application_id = ? LIMIT 1`,
@@ -622,30 +285,26 @@ exports.approveApplication = async (req, res) => {
 
     if (exist) {
       await conn.query(
-        `UPDATE candidates 
-            SET candidate_number = ?, 
+        `UPDATE candidates
+            SET candidate_number = ?,
                 status = 'approved',
-                campaign_slogan = ?, 
-                photo = ?, 
+                campaign_slogan = ?,
+                photo = ?,
                 reviewed_by = ?
           WHERE candidate_id = ?`,
         [nextNumber, appRow.campaign_slogan ?? null, appRow.photo ?? null, committeeId, exist.candidate_id]
       );
-      // หมายเหตุ: ถ้ามีคอลัมน์ updated_at TIMESTAMP ... ON UPDATE CURRENT_TIMESTAMP
-      // DB จะอัปเดตเวลาให้เอง ไม่ต้องเซ็ตด้วยมือ
     } else {
       await conn.query(
-        `INSERT INTO candidates 
+        `INSERT INTO candidates
             (application_id, candidate_number, status, campaign_slogan, photo, reviewed_by)
          VALUES (?, ?, 'approved', ?, ?, ?)`,
         [appId, nextNumber, appRow.campaign_slogan ?? null, appRow.photo ?? null, committeeId]
       );
-      // หมายเหตุ: created_at จะถูกเซ็ตอัตโนมัติจาก DEFAULT CURRENT_TIMESTAMP
     }
 
-    // 4) sync สถานะ + reviewer ใน applications (reviewed_at ใช้ CURRENT_TIMESTAMP)
     await conn.query(
-      `UPDATE applications 
+      `UPDATE applications
           SET application_status = 'approved',
               reviewed_by = ?,
               reviewed_at = CURRENT_TIMESTAMP
@@ -653,15 +312,28 @@ exports.approveApplication = async (req, res) => {
       [committeeId, appId]
     );
 
-    // 5) ✅ เพิ่ม record ในตาราง committee_reviews
+    const roleRow = pickRows(
+      await conn.query(`SELECT role_id FROM role WHERE role_name = 'ผู้สมัคร' LIMIT 1`)
+    )[0];
+    const candidateRoleId = roleRow?.role_id ?? 2;
+
+    await conn.query(
+      `INSERT INTO user_roles (user_id, role_id, assigned_at)
+       SELECT ?, ?, CURRENT_TIMESTAMP
+        WHERE NOT EXISTS (
+          SELECT 1 FROM user_roles WHERE user_id = ? AND role_id = ?
+        )`,
+      [appRow.user_id, candidateRoleId, appRow.user_id, candidateRoleId]
+    );
+
     await conn.query(
       `INSERT INTO committee_reviews (candidate_id, committee_id, decision, reviewed_at)
-   VALUES (
-     (SELECT candidate_id FROM candidates WHERE application_id = ?),
-     ?,
-     'approve',
-     CURRENT_TIMESTAMP
-   )`,
+       VALUES (
+         (SELECT candidate_id FROM candidates WHERE application_id = ?),
+         ?,
+         'approve',
+         CURRENT_TIMESTAMP
+       )`,
       [appId, committeeId]
     );
 
@@ -670,35 +342,86 @@ exports.approveApplication = async (req, res) => {
   } catch (err) {
     if (conn.rollback) try { await conn.rollback(); } catch { }
     console.error("[approveApplication]", err);
-    return res.status(500).json({ message: "อนุมัติไม่สำเร็จ" });
+    return res.status(500).json({ message: "อนุมัติไม่สำเร็จ", error: err.message });
   } finally {
     if (conn.release) conn.release();
   }
 };
 
 
+
 /* ------------------------------------------------------------------ */
 /* POST /api/applications/:id/reject   body: { reason }
 /* ------------------------------------------------------------------ */
+// exports.rejectApplication = async (req, res) => {
+//   try {
+//     const { id: appId } = req.params;
+//     const { reason } = req.body || {};
+//     if (!reason || !String(reason).trim()) {
+//       return res.status(400).json({ message: "กรุณาระบุเหตุผล" });
+//     }
+//     await db.query(
+//       `UPDATE applications
+//           SET application_status = 'rejected',
+//               rejection_reason   = ?,
+//               rejection_count    = COALESCE(rejection_count, 0) + 1
+//         WHERE application_id = ?`,
+//       [reason, appId]
+//     );
+//     return res.status(200).json({ success: true });
+//   } catch (err) {
+//     console.error("[rejectApplication]", err);
+//     return res.status(500).json({ message: "ปฏิเสธไม่สำเร็จ" });
+//   }
+// };
+
+/* POST /api/applications/:id/reject   body: { reason } */
 exports.rejectApplication = async (req, res) => {
+  const conn = db.getConnection ? await db.getConnection() : db;
   try {
     const { id: appId } = req.params;
     const { reason } = req.body || {};
+    const committeeId = req.user?.user_id ?? 0; // ← คนที่ปฏิเสธ
+
     if (!reason || !String(reason).trim()) {
       return res.status(400).json({ message: "กรุณาระบุเหตุผล" });
     }
-    await db.query(
+
+    if (conn.beginTransaction) await conn.beginTransaction();
+
+    // 1) อัปเดตสถานะ + ผู้รีวิว + เวลา
+    await conn.query(
       `UPDATE applications
           SET application_status = 'rejected',
               rejection_reason   = ?,
-              rejection_count    = COALESCE(rejection_count, 0) + 1
+              rejection_count    = COALESCE(rejection_count, 0) + 1,
+              reviewed_by        = ?,
+              reviewed_at        = CURRENT_TIMESTAMP
         WHERE application_id = ?`,
-      [reason, appId]
+      [reason, committeeId, appId]
     );
+
+    // 2) บันทึกลง committee_reviews (candidate_id อาจยังไม่มี → NULL ได้)
+    await conn.query(
+      `INSERT INTO committee_reviews (candidate_id, committee_id, decision, reason, reviewed_at)
+       VALUES (
+         (SELECT candidate_id FROM candidates WHERE application_id = ? LIMIT 1),
+         ?,
+         'reject',
+         ?,
+         CURRENT_TIMESTAMP
+       )`,
+      [appId, committeeId, reason]
+    );
+
+    if (conn.commit) await conn.commit();
     return res.status(200).json({ success: true });
   } catch (err) {
+    if (conn.rollback) try { await conn.rollback(); } catch { }
     console.error("[rejectApplication]", err);
     return res.status(500).json({ message: "ปฏิเสธไม่สำเร็จ" });
+  } finally {
+    if (conn.release) conn.release();
   }
 };
 
