@@ -59,26 +59,27 @@ export const formatDateTime = (dateString) => {
     });
 };
 
-// export const formatDateTime = (dateString) => {
-//     if (!dateString) return "ไม่ระบุ";
+export const formatDateTimeShort = (dateString) => {
+    if (!dateString) return "ไม่ระบุ";
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return "ไม่ระบุ";
 
-//     const date = new Date(dateString);
-//     if (isNaN(date.getTime())) return "ไม่ระบุ";
+    const months = [
+        "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+        "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+    ];
 
-//     // ชื่อเดือนย่อภาษาไทย
-//     const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", 
-//                     "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+    const day = d.getDate();
+    const month = months[d.getMonth()];
+    const year = d.getFullYear() + 543;              // แปลงเป็น พ.ศ.
+    const shortYear = year.toString().slice(-2);     // เอา 2 หลักท้าย
 
-//     const day = date.getDate();
-//     const month = months[date.getMonth()];
-//     const year = date.getFullYear() + 543; // แปลงเป็น พ.ศ.
-//     const shortYear = year.toString().slice(-2); // ใช้เลข 2 หลัก
+    // เวลาสองหลัก
+    const hour = String(d.getHours()).padStart(2, "0");
+    const minute = String(d.getMinutes()).padStart(2, "0");
 
-//     const hour = date.getHours().toString().padStart(2, "0");
-//     const minute = date.getMinutes().toString().padStart(2, "0");
-
-//     return `${day} ${month} ${shortYear} ${hour}:${minute}`;
-// };
+    return `${day} ${month} ${shortYear} เวลา : ${hour}:${minute} น.`;
+};
 
 export const formatForInputDateTime = (dateString) => {
     if (!dateString) return "";
@@ -99,3 +100,23 @@ export const formatForBackend = (dateString) => {
 };
 
 
+export const formatDate2 = (dateStr) => {
+  if (!dateStr) return "ไม่ระบุ";
+  const d = new Date(dateStr);
+  const months = [
+    "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+    "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+  ];
+  const day = d.getDate();
+  const month = months[d.getMonth()];
+  const year = (d.getFullYear() + 543).toString().slice(-2);
+  return `${day} ${month} ${year}`;
+};
+
+export const formatTime2 = (dateStr) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  const hour = String(d.getHours()).padStart(2, "0");
+  const minute = String(d.getMinutes()).padStart(2, "0");
+  return ` เวลา : ${hour}:${minute} น.`;
+};

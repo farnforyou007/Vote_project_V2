@@ -15,33 +15,23 @@ export default function ElectionDetail() {
     const [election, setElection] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // const studentName = localStorage.getItem("studentName") || "";
-    // const roles = JSON.parse(localStorage.getItem("userRoles") || "[]");
-    // const isLoggedIn = !!studentName;
     const [me, setMe] = useState(null);
     const [roles, setRoles] = useState([]);
     const isLoggedIn = !!me;
     const studentName = me ? `${me.first_name} ${me.last_name}` : "";
 
-    const [votedElections, setVotedElections] = useState([]);
+    // const [votedElections, setVotedElections] = useState([]);
 
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // const token = localStorage.getItem("token");
-                // const data = await apiFetch(`http://localhost:5000/api/elections/${id}`, {
-                //     headers: {
-                //         "Content-Type": "application/json",
-                //         Authorization: `Bearer ${token}`
-                //     }
-                // });
-                const meRes = await apiFetch("http://localhost:5000/api/users/me");
+                const meRes = await apiFetch("/api/users/me");
                 if (meRes?.success) {
                     setMe(meRes.user);
                     setRoles(meRes.user.roles || []);
                 }
-                const data = await apiFetch(`http://localhost:5000/api/elections/${id}`);
+                const data = await apiFetch(`/api/elections/${id}`);
                 // const data = await res.json();
                 if (!data) return;
 
@@ -63,12 +53,8 @@ export default function ElectionDetail() {
     }, [id]);
 
     const handleVoteClick = async (electionId) => {
-        // const token = localStorage.getItem('token');
-        // // เช็คสิทธิ์โหวตก่อน
-        // const eligibilityData = await apiFetch(`http://localhost:5000/api/eligibility/${electionId}`, {
-        //     headers: { Authorization: `Bearer ${token}` },
-        // });
-        const eligibilityData = await apiFetch(`http://localhost:5000/api/eligibility/${electionId}`);
+
+        const eligibilityData = await apiFetch(`/api/eligibility/${electionId}`);
         if (!eligibilityData) return;
 
         if (!eligibilityData.success || !eligibilityData.eligible) {
@@ -82,8 +68,7 @@ export default function ElectionDetail() {
         }
         // ถ้ามีสิทธิ์ → ไปหน้าลงคะแนน
         window.location.href = `/election/${electionId}/vote`;
-        // หรือถ้าใช้ react-router v6+
-        // navigate(`/election/${electionId}/vote`);
+
     };
 
     const html = ((election && election.description) ? election.description : "")
@@ -95,8 +80,33 @@ export default function ElectionDetail() {
         .replace(/^## (.+)$/gm, "<span class='font-semibold'>$1</span>")
         .replace(/^- (.+)$/gm, "• $1");
 
-    if (loading) return <p className="p-8">กำลังโหลดข้อมูล...</p>;
-    if (!election) return <p className="p-8">ไม่พบข้อมูลการเลือกตั้ง</p>;
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-gray-50">
+                <div className="bg-white shadow-lg rounded-2xl p-8 flex flex-col items-center space-y-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                    <p className="text-gray-700 text-lg font-medium">กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        );
+    }
+    if (!election) return (
+        <div className="flex items-center justify-center min-h-screen bg-gray-50">
+            <div className="bg-white shadow-lg rounded-2xl p-8 flex flex-col items-center space-y-3 border border-red-200">
+                <svg
+                    className="w-12 h-12 text-red-500"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M4.93 4.93l14.14 14.14M12 2a10 10 0 100 20 10 10 0 000-20z" />
+                </svg>
+                <p className="text-red-600 text-lg font-semibold">ไม่พบรายการเลือกตั้ง</p>
+                <p className="text-gray-500 text-sm">โปรดติดต่อผู้ดูแลระบบ</p>
+            </div>
+        </div>
+    );
 
     return (
         <>
@@ -106,23 +116,12 @@ export default function ElectionDetail() {
                     {election.election_name}
                 </h1>
                 <img
-                    // src={`http://localhost:5000${election.image_path}`}
+
                     src={`http://localhost:5000${election.image_url}`}
                     alt="election"
                     className="w-full h-128 object-cover rounded mb-4"
                 />
-                {/* <div className="h-[4.5rem] overflow-hidden"> */}
-                {/* <div> */}
-                {/* <p className="text-sm text-gray-700 line-clamp-2 break-all">
-                        {election.description}
-                    </p> */}
-                {/* <p className="whitespace-pre-line leading-relaxed">
-                        {election.description}
-                    </p> */}
-                {/* <p className="whitespace-pre-wrap break-words leading-relaxed">
-                        {election.description}
-                    </p>
-                </div> */}
+
 
                 <div
                     className="leading-relaxed whitespace-pre-wrap break-words"
@@ -151,11 +150,6 @@ export default function ElectionDetail() {
 
                 <p className="text-sm mt-2">
                     <span className="font-semibold">สถานะ:</span>{" "}
-                    {/* <span className={`px-2 py-1 rounded text-white text-xs ${election.computed_status === "registration" ? "bg-violet-500" :
-                        election.computed_status === "active" ? "bg-green-500" :
-                            election.computed_status === "closed" ? "bg-gray-500" :
-                                election.computed_status === "completed" ? "bg-slate-500" : "bg-purple-500"
-                        }`}> */}
                     <span className={`px-2 py-1 rounded text-white text-xs 
                                 ${election.effective_status === "REGISTRATION_OPEN" ? "bg-violet-500" :
                             election.effective_status === "VOTING_OPEN" ? "bg-green-500" :
@@ -165,7 +159,7 @@ export default function ElectionDetail() {
                                             "bg-purple-500"
                         }`
                     }>
-                        {/* {translateStatus(election.computed_status)} */}
+
                         {translateStatus(election.effective_status || election.auto_status)}
                     </span>
                 </p>
@@ -181,21 +175,8 @@ export default function ElectionDetail() {
                         </button>
 
                     </div>
-                    {/* <button className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">
-                        ย้อนกลับ
-                    </button> */}
                     {isLoggedIn && roles.includes("นักศึกษา") && election.effective_status === "VOTING_OPEN" && (
-                        // <button className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">
-                        //     ลงคะแนน
-                        // </button>
-                        votedElections.includes(election.election_id) ? (
-                            <button
-                                disabled
-                                className="w-full bg-gray-400 text-white py- rounded cursor-not-allowed"
-                            >
-                                ลงคะแนนแล้ว
-                            </button>
-                        ) : (
+
                             <button
                                 className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
 
@@ -204,7 +185,7 @@ export default function ElectionDetail() {
                                 ลงคะแนน
                             </button>
                         )
-                    )}
+                    }
                     {isLoggedIn && roles.includes("นักศึกษา") && election.effective_status === "REGISTRATION_OPEN" && (
                         <button className="w-full bg-yellow-500 text-white py-2 rounded hover:bg-yellow-600">
                             สมัครเป็นผู้สมัคร

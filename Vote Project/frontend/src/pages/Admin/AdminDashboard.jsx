@@ -4,6 +4,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Header } from "components";
 
+import { translateStatus } from "utils/electionStatus"
+
+import { formatDateTimeShort, formatDate2, formatTime2 } from "utils/dateUtils";
+
 import { apiFetch } from "utils/apiFetch";
 
 import {
@@ -294,28 +298,7 @@ export default function AdminDashboard() {
         }),
         [turnout]
     );
-    // const turnoutOptions = useMemo(() => ({
-    //     responsive: true,
-    //     maintainAspectRatio: false,
-    //     plugins: {
-    //         legend: { display: false },
-    //         tooltip: {
-    //             callbacks: {
-    //                 label: (ctx) => {
-    //                     const pct = ctx.raw; // 0–100
-    //                     const row = turnout[ctx.dataIndex];
-    //                     const x = row?.voters ?? "-";
-    //                     const y = row?.eligible ?? "-";
-    //                     return `อัตราการมาใช้สิทธิ์: ${pct}% (${x}/${y} คน)`;
-    //                 }
-    //             }
-    //         }
-    //     },
-    //     scales: {
-    //         y: { beginAtZero: true, ticks: { callback: (v) => v + "%" } },
-    //         x: { grid: { display: false } },
-    //     },
-    // }), [turnout]);
+
     const turnoutOptions = useMemo(() => ({
         responsive: true,
         maintainAspectRatio: false,
@@ -420,26 +403,7 @@ export default function AdminDashboard() {
         }),
         [turnoutBoard]
     );
-    // const turnoutBoardOptions = useMemo(
-    //     () => ({
-    //         indexAxis: "y",
-    //         responsive: true,
-    //         maintainAspectRatio: false,
-    //         plugins: {
-    //             legend: { display: false },
-    //             tooltip: {
-    //                 callbacks: {
-    //                     afterLabel: (ctx) => {
-    //                         const row = turnoutBoard[ctx.dataIndex];
-    //                         return row ? `\n${row.voters}/${row.eligible} คน` : "";
-    //                     },
-    //                 },
-    //             },
-    //         },
-    //         scales: { x: { beginAtZero: true, max: 100 } },
-    //     }),
-    //     [turnoutBoard]
-    // );
+
     const turnoutBoardOptions = useMemo(() => ({
         indexAxis: "y",
         responsive: true,
@@ -496,6 +460,20 @@ export default function AdminDashboard() {
         );
     }
 
+    function statusPillClass(key) {
+        switch (key) {
+            case "REGISTRATION_OPEN": return "bg-violet-500";
+            case "VOTING_OPEN": return "bg-green-500";
+            case "CLOSED_BY_ADMIN": return "bg-gray-500";
+            case "ENDED": return "bg-slate-500";
+            case "UPCOMING_REGISTRATION":
+            case "WAITING_VOTE": return "bg-amber-500";
+            default: return "bg-purple-500";
+        }
+    }
+
+
+
     /* ---- UI ---- */
     return (
         <>
@@ -514,10 +492,10 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* KPIs */}
-                    <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                         <KPICard icon={<Users className="w-5 h-5" />} label="ผู้ใช้ทั้งหมด" value={kpis?.users ?? "-"} bgColor="bg-blue-100" iconColor="text-blue-600" />
-                        <KPICard icon={<UserCheck className="w-5 h-5" />} label="ผู้มีสิทธิ์โหวต (รวม)" value={kpis?.eligible ?? "-"} bgColor="bg-emerald-100" iconColor="text-emerald-600" />
-                        <KPICard icon={<UserCheck className="w-5 h-5" />} label="ผู้มีสิทธิ์โหวต (ไม่ซ้ำ)" value={kpis?.eligible_unique ?? "-"} bgColor="bg-indigo-100" iconColor="text-indigo-600" />
+                        {/* <KPICard icon={<UserCheck className="w-5 h-5" />} label="ผู้มีสิทธิ์โหวต (ทุกรายการ)" value={kpis?.eligible ?? "-"} bgColor="bg-emerald-100" iconColor="text-emerald-600" /> */}
+                        <KPICard icon={<UserCheck className="w-5 h-5" />} label="ผู้มีสิทธิ์โหวต" value={kpis?.eligible_unique ?? "-"} bgColor="bg-indigo-100" iconColor="text-indigo-600" />
                         <KPICard icon={<UserPlus className="w-5 h-5" />} label="ผู้สมัคร" value={kpis?.candidates ?? "-"} bgColor="bg-purple-100" iconColor="text-purple-600" />
                         <KPICard icon={<ShieldCheck className="w-5 h-5" />} label="กรรมการ" value={kpis?.committee ?? "-"} bgColor="bg-cyan-100" iconColor="text-cyan-600" />
                         <KPICard icon={<Cog className="w-5 h-5" />} label="แอดมิน" value={kpis?.admin ?? "-"} bgColor="bg-pink-100" iconColor="text-pink-600" />
@@ -625,21 +603,46 @@ export default function AdminDashboard() {
                                         <th className="p-2 text-left font-semibold text-gray-700">ชื่อ</th>
                                         <th className="p-2 text-left font-semibold text-gray-700">สมัคร</th>
                                         <th className="p-2 text-left font-semibold text-gray-700">โหวต</th>
+                                        <th className="p-2 text-center font-semibold text-gray-700">สถานะ</th> {/* เพิ่ม */}
                                     </tr>
                                 </thead>
+
                                 <tbody>
-                                    {(activeElections || []).map((e, i) => (
-                                        <tr key={e.id} className={`border-t border-gray-100 hover:bg-purple-50/50 transition-colors ${i % 2 === 0 ? "bg-gray-50/30" : ""}`}>
-                                            <td className="p-2 font-medium text-gray-800">{e.name}</td>
-                                            <td className="p-2 text-gray-600">
-                                                {new Date(e.registration_start).toLocaleString()} – {new Date(e.registration_end).toLocaleString()}
-                                            </td>
-                                            <td className="p-2 text-gray-600">
-                                                {new Date(e.start_date).toLocaleString()} – {new Date(e.end_date).toLocaleString()}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {(activeElections || []).map((e, i) => {
+                                        const statusKey = e.effective_status || e.auto_status; // ✅ ใช้ของแบ็กเอนด์
+                                        return (
+                                            <tr key={e.id} className={`border-t border-gray-100 hover:bg-purple-50/50 ${i % 2 === 0 ? "bg-gray-50/30" : ""}`}>
+                                                <td className="p-2 font-medium text-gray-800">{e.name || e.election_name}</td>
+                                                <td className="p-2 text-gray-600">
+                                                    {/* {formatDateTimeShort(e.registration_start).toLocaleString()} - {formatDateTimeShort(e.registration_end).toLocaleString()} */}
+                                                    เริ่ม&nbsp;
+                                                    {formatDate2(e.registration_start)}
+                                                    {formatTime2(e.registration_start)} - <br />
+                                                    สิ้นสุด&nbsp;
+                                                    {formatDate2(e.registration_end)}
+                                                    {formatTime2(e.registration_end)}
+                                                </td>
+                                                <td className="p-2 text-gray-600">
+                                                    {/* {formatDateTimeShort(e.start_date).toLocaleString()} – {formatDateTimeShort(e.end_date).toLocaleString()} */}
+                                                    เริ่ม&nbsp;
+                                                    {formatDate2(e.start_date)}
+                                                    {formatTime2(e.start_date)} - <br />
+                                                    สิ้นสุด&nbsp;
+                                                    {formatDate2(e.end_date)}
+                                                    {formatTime2(e.end_date)}
+                                                </td>
+                                                <td className="p-2 text-center">
+                                                    <span className={`px-2 py-1 rounded text-white text-xs ${statusPillClass(statusKey)}`}>
+                                                        {translateStatus(statusKey)}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+
                                 </tbody>
+
+
                             </table>
                         </div>
                     </div>

@@ -1,4 +1,5 @@
 const db = require('../models/db');
+const { computeEffectiveStatus } = require('../utils/electionStatus');
 
 // 1) KPI รวม
 exports.getKpis = async (req, res) => {
@@ -110,24 +111,58 @@ exports.getYearDistribution = async (req, res) => {
 };
 
 // 6) เลือกตั้งที่ยังไม่หมดช่วง
+// exports.getActiveElections = async (req, res) => {
+//   try {
+//     const rows = await db.query(`
+//       SELECT 
+//         e.election_id AS id,
+//         e.election_name AS name,
+//         e.registration_start, e.registration_end,
+//         e.start_date, e.end_date
+//       FROM elections e
+//       WHERE NOW() <= e.end_date
+//       ORDER BY e.start_date DESC
+//       LIMIT 8
+//     `);
+//     res.json({ success: true, data: rows });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: 'SQL Error', error: err });
+//   }
+// };
 exports.getActiveElections = async (req, res) => {
   try {
     const rows = await db.query(`
       SELECT 
-        e.election_id AS id,
-        e.election_name AS name,
-        e.registration_start, e.registration_end,
-        e.start_date, e.end_date
+        e.election_id           AS id,
+        e.election_name         AS name,
+        e.description,
+        e.registration_start, 
+        e.registration_end,
+        e.start_date, 
+        e.end_date,
+        e.image_path            AS image_url,
+        e.is_hidden,
+        e.manual_override,
+        e.status_note
       FROM elections e
-      WHERE NOW() <= e.end_date
+      WHERE NOW() <= e.end_date           -- ยังไม่จบ
+      -- AND e.is_hidden = 0              -- (ออปชัน) ซ่อนจากแดชบอร์ด
       ORDER BY e.start_date DESC
       LIMIT 8
     `);
-    res.json({ success: true, data: rows });
+
+    const result = rows.map(r => ({
+      ...r,
+      ...computeEffectiveStatus(r),  // ✅ เติม { auto_status, effective_status }
+    }));
+
+    res.json({ success: true, data: result });
   } catch (err) {
+    console.error('getActiveElections error:', err);
     res.status(500).json({ success: false, message: 'SQL Error', error: err });
   }
 };
+
 
 // 7) สรุปจำนวนการเลือกตั้ง
 exports.getElectionSummary = async (req, res) => {

@@ -60,15 +60,11 @@ async function resizeCandidatePhoto(req, res, next) {
 }
 // เช็คว่าสมัครไปแล้วยัง
 router.get('/applications/check/:election_id', verifyToken, applicationController.checkAlreadyApplied);
-
-
-
 // เช็คว่าผู้ใช้นั้นมีใบสมัครมั้ย
 router.get('/applications/check', verifyToken, applicationController.checkApplicationStatus);
 
 // ใบสมัครทั้งหมดของฉัน
-router.get(
-  "/applications/my-all", verifyToken, applicationController.getMyApplication);
+router.get("/applications/my-all", verifyToken, applicationController.getMyApplication);
 
 // อัปเดตใบสมัครของฉัน (+อัปโหลดรูปใหม่)
 // router.put('/applications/update-my', verifyToken, upload.single('photo'), applicationController.updateMyApplication);
@@ -79,15 +75,15 @@ router.delete('/candidates/:id', verifyToken, applicationController.deleteApplic
 // รายชื่อผู้สมัครของการเลือกตั้ง (ใช้กับดูผู้สมัครฝั่งแอดมิน)
 router.get('/elections/:id/candidates', verifyToken, applicationController.getCandidatesByElection); // ดึงใบสมัครแต่ละรายการนั้น
 
-router.put('/applications/:id/request-revision', verifyToken, /* requireRole('committee'), */ applicationController.requestRevision);
+router.put('/applications/:id/request-revision', verifyToken, requireRole("กรรมการ") ,applicationController.requestRevision);
 // เพิ่ม route นี้ (หรือแก้ของเดิมให้มี middleware อัปโหลดรูป)
 
 // application.routes.js
 router.put(
   '/applications/update-my',
   verifyToken,
-  upload.single('photo'),   // รับไฟล์
-  resizeCandidatePhoto,     // ★ สำคัญ: เซ็ต filename + path
+  upload.single('photo'),   
+  resizeCandidatePhoto,    
   applicationController.updateMyApplication
 );
 

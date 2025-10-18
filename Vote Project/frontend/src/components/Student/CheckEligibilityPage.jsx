@@ -12,30 +12,17 @@ export default function CheckEligibilityPage() {
     const [roles, setRoles] = useState([]);
     const studentName = me ? `${me.first_name} ${me.last_name}` : "";
 
-    // useEffect(() => {
-    //     const token = localStorage.getItem("token");
-
-    //     fetch("http://localhost:5000/api/eligibility/list-my", {
-    //         headers: { Authorization: `Bearer ${token}` },
-    //     })
-    //         .then((res) => res.json())
-    //         .then((data) => {
-    //             console.log("🎯 Eligibility response:", data);
-    //             if (data.success) setElections(data.elections || []);
-    //             setLoading(false);
-    //         });
-    // }, []);
 
     useEffect(() => {
         const fetchData = async () => {
             // โหลดโปรไฟล์ก่อน
-            const meRes = await apiFetch("http://localhost:5000/api/users/me");
+            const meRes = await apiFetch("/api/users/me");
             if (meRes?.success) {
                 setMe(meRes.user);
                 setRoles(meRes.user.roles || []);
             }
             try {
-                const data = await apiFetch("http://localhost:5000/api/eligibility/list-my");
+                const data = await apiFetch("/api/eligibility/list-my");
                 if (!data) return;
                 if (data.success) {
                     setElections(data.elections || []);

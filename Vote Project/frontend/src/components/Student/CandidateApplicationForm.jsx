@@ -33,26 +33,13 @@ export default function CandidateApplicationForm({ student, electionId, onClose 
 
 
         try {
-            // const res = await fetch('/api/apply-candidate', {
-            //     method: 'POST',
-            //     body: formData
-            // });
-            // const data = await res.json();
+           
             setSubmitting(true);
             const data = await apiFetch('/api/apply-candidate', {
                 method: 'POST',
                 body: formData
             });
-            // if (data.success) {
-            //     // alert(data.message || "สมัครสำเร็จ");
-            //     Swal.fire("สมัครสำเร็จ!", "", "success");
-
-            //     onClose();
-            // } else {
-            //     // alert(data.message || "ไม่สามารถสมัครได้");
-            //     Swal.fire("สมัครสำเร็จ!", "", "warning");
-
-            // }
+           
             if (data?.success) {
                 await Swal.fire("ส่งใบสมัครแล้ว", "รอการอนุมัติจากกรรมการ", "success");
                 onClose?.();

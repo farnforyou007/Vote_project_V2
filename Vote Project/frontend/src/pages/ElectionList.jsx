@@ -50,7 +50,7 @@ export default function ElectionList() {
     const [votedElections, setVotedElections] = useState([]);
     const [editingElection, setEditingElection] = useState(null);
 
-    const navigate = useNavigate();
+    // const navigate = useNavigate();
     // ===== โหลดข้อมูล =====
     useEffect(() => {
         const fetchElections = async () => {
@@ -371,17 +371,21 @@ export default function ElectionList() {
                         )}
 
                         {roles.includes("นักศึกษา") && election.effective_status === "ENDED" && (
-                            // <button
-                            //     onClick={() => navigate(`/results/${election.election_id}`)}   // ✅ ไปหน้าผลคะแนน
-                            //     className="w-full bg-purple-500 text-white py-1 rounded hover:bg-purple-600 text-[13px]"
-                            // >
-                            //     ดูผลคะแนน
-                            // </button>
                             <Link
                                 to={`/results/${election.election_id}`}
                                 className="block w-full text-center bg-purple-500 text-white py-1 rounded hover:bg-purple-600 text-[13px]"
                             >
                                 ดูผลคะแนน
+                            </Link>
+                        )}
+
+                        {roles.includes("กรรมการ")  && (
+                            
+                            <Link
+                                to={`/committee/election/${election.election_id}/applications`}
+                                className="block w-full text-center bg-purple-500 text-white py-1 rounded hover:bg-purple-600 text-[13px]"
+                            >
+                                ตรวจใบสมัคร
                             </Link>
                         )}
 
@@ -421,21 +425,9 @@ export default function ElectionList() {
         );
     }
 
-    // ===== Views =====
+ 
     // ===== Views =====
     const YearGrid = ({ list }) => {
-        // มีใบเดียว → จัดกลาง + กว้างเท่าหนึ่งคอลัมน์ของ layout 2 คอลัมน์
-        // if (list.length === 1) {
-        //     return (
-        //         <div className="flex justify-center">
-        //             <div className="w-full md:w-1/2 max-w-[720px]">
-        //                 {renderCard(list[0])}
-        //             </div>
-        //         </div>
-        //     );
-        // }
-
-        // ปกติ → 2 คอลัมน์บนจอ md ขึ้นไป, 1 คอลัมน์บนมือถือ
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {list.map(renderCard)}
@@ -444,7 +436,7 @@ export default function ElectionList() {
     };
 
 
-    // ปีทั้งหมด (เรียงใหม่→เก่า) ยกเว้น "ALL"
+
     // ปีทั้งหมด (เรียงใหม่→เก่า) ยกเว้น "ALL"
     const yearsDescending = allYears.filter((y) => y !== "ALL");
 
@@ -602,7 +594,7 @@ export default function ElectionList() {
                         </div>
                     )
                 ) : (
-                    // โหมด: เลือกปีเฉพาะ (คงโครงเดิม แบ่งตามสถานะ)
+                    // โหมด: เลือกปีเฉพาะ (แบ่งตามสถานะ)
                     <>
 
                         {groupedBySection.REG.length > 0 && (

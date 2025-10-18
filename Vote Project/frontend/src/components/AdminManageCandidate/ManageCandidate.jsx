@@ -6,7 +6,7 @@ import { FaTrash, FaEye } from "react-icons/fa";
 import Swal from "sweetalert2";
 import CandidateModal from "./CandidateModal";
 import { apiFetch } from "utils/apiFetch";
-import { formatDate, formatTime } from "utils/dateUtils";
+import { formatDate, formatTime } from "utils/dateUtils";   
 
 export default function AdminManageCandidates() {
     const { id } = useParams();

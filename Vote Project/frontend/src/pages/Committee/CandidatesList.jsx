@@ -1,6 +1,4 @@
 
-// ver3
-
 // src/pages/CandidatesList.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -8,18 +6,6 @@ import { Header } from "components";
 import Swal from "sweetalert2";
 import { apiFetch } from "utils/apiFetch";
 import { fillApplicationForm } from "utils/fillApplicationForm";
-
-// src/pages/CandidatesList.jsx
-// รีแฟกเตอร์ให้ "หน้าตาและ UX" ใกล้เคียง ManageCandidate แต่คง API เดิมจาก CandidatesList/CandidateDetail
-// - รายการผู้สมัคร: GET /api/elections/:id/applications
-// - ข้อมูลเลือกตั้ง:   GET /api/elections/:id
-// - รายละเอียด (โมดอล):  GET /api/applications/:applicationId
-// - อนุมัติ:            POST /api/applications/:applicationId/approve
-// - ปฏิเสธ:            POST /api/applications/:applicationId/reject  { reason }
-// - ลบ:                DELETE /api/applications/:applicationId
-// - ดาวน์โหลด PDF:    fillApplicationForm(candidate)
-
-
 
 /* -------------------------------- helpers -------------------------------- */
 const formatDate = (d) => {
@@ -226,11 +212,7 @@ function CandidateDetailModal({ applicationId, onClose, onChanged }) {
                                 <div className="md:col-span-3"><div className="text-slate-500">นโยบาย</div><div className="bg-purple-50 p-2 rounded whitespace-pre-wrap">{candidate.campaign_slogan || "-"}</div></div>
                                 <div className="md:col-span-3"><div className="text-slate-500">หมายเลขผู้สมัคร</div><div className="bg-purple-50 p-2 rounded">{candidate.number || "-"}</div></div>
                                 <div className="md:col-span-3">
-                                    {/* <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${candidate.application_status === "approved" ? "bg-green-100 text-green-700" :
-                                    candidate.application_status === "rejected" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
-                                    }`}>
-                                    สถานะ: {candidate.application_status === "approved" ? "อนุมัติแล้ว" : candidate.application_status === "rejected" ? "ไม่อนุมัติ" : "รอการอนุมัติ"}
-                                </div> */}
+                                   
                                     {/* // โมดอล: แถบสถานะ */}
                                     <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${candidate.application_status === "approved" ? "bg-green-100 text-green-700" :
                                         candidate.application_status === "rejected" ? "bg-red-100 text-red-700" :

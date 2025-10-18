@@ -1,7 +1,5 @@
-// version with getConnection for transaction support
-// 📁 controllers/application.controller.js
+//📁 controllers/application.controller.js
 const db = require('../models/db');
-// const jwt = require('jsonwebtoken'); // ไม่ได้ใช้ในไฟล์นี้แล้ว
 
 /** ------------------------------------------------------------------ */
 /** POST /api/applications  (นักศึกษาสมัครเป็นผู้สมัคร)                */
@@ -184,42 +182,6 @@ exports.approveCandidate = async (req, res) => {
     }
 };
 
-/** ------------------------------------------------------------------ */
-/** DELETE /api/candidates/:id (admin)                                   */
-/** ------------------------------------------------------------------ */
-// exports.deleteCandidate = async (req, res) => {
-//     try {
-//         const candidateId = req.params.id;
-//         await db.query(`DELETE FROM candidates WHERE candidate_id = ?`, [candidateId]);
-//         res.json({ success: true });
-//     } catch (err) {
-//         console.error('deleteCandidate error:', err);
-//         res.status(500).json({ message: 'Delete failed' });
-//     }
-// };
-/** DELETE /api/candidates/:id  (admin only) */
-// exports.deleteApplication = async (req, res) => {
-//     const conn = db.getConnection ? await db.getConnection() : db;
-//     try {
-//         const candidateId = req.params.id;
-//         if (conn.beginTransaction) await conn.beginTransaction();
-
-//         await conn.query(`DELETE FROM candidates WHERE application_id = ?`, [candidateId]);
-//         await conn.query(`DELETE FROM applications WHERE application_id = ?`, [candidateId]);
-
-
-//         if (conn.commit) await conn.commit();
-//         res.json({ success: true });
-//     } catch (err) {
-//         if (conn.rollback) try { await conn.rollback(); } catch { }
-//         console.error('deleteCandidate error:', err);
-//         res.status(500).json({ message: 'Delete failed' });
-//     } finally {
-//         if (conn.release) conn.release();
-//     }
-// };
-
-// controllers/xxxx.controller.js
 exports.deleteApplication = async (req, res) => {
     const conn = db.getConnection ? await db.getConnection() : db;
     const pickRows = (result) =>
@@ -299,122 +261,6 @@ exports.deleteApplication = async (req, res) => {
 };
 
 
-
-/** ------------------------------------------------------------------ */
-/** GET /api/applications/by-election/:id                                */
-/** ------------------------------------------------------------------ */
-// exports.getCandidatesByElection = async (req, res) => {
-//     try {
-//         const electionId = req.params.id;
-
-//         //     const sql = `
-//         //   SELECT
-//         //     a.application_id AS candidate_id,
-//         //     u.student_id,
-//         //     CONCAT(u.first_name, ' ', u.last_name) AS full_name,
-//         //     a.photo AS image_url,
-//         //     a.campaign_slogan AS policy,
-//         //     a.application_status AS status,
-//         //     a.application_number,
-//         //     a.reviewed_by,
-//         //     a.reviewed_at,
-//         //     a.submitted_at,
-//         //     a.rejection_reason,
-//         //     u.department_id,
-//         //     d.department_name,
-//         //     u.year_id,
-//         //     y.year_name,
-//         //     y.level_id,
-//         //     CONCAT(r.first_name, ' ', r.last_name) AS reviewer_name
-//         //   FROM applications a
-//         //   JOIN users u ON a.user_id = u.user_id
-//         //   LEFT JOIN users r ON a.reviewed_by = r.user_id
-//         //   LEFT JOIN department d ON u.department_id = d.department_id
-//         //   LEFT JOIN year_levels y ON u.year_id = y.year_id
-//         //   WHERE a.election_id = ?
-//         //   ORDER BY a.submitted_at DESC
-//         // `;
-
-//         const sql = `
-// SELECT
-//   a.application_id AS candidate_id,
-//   u.student_id,
-//   CONCAT(u.first_name, ' ', u.last_name) AS name,
-//   COALESCE(d.department_name, '') AS department,
-//   COALESCE(y.year_name, '')        AS year_name,      -- ถ้าอยากเป็นเลขให้เปลี่ยนเป็น y.year_number
-//   COALESCE(l.level_name, '')       AS level_name,
-//   a.campaign_slogan,
-//   a.photo,
-//   a.application_status,
-//   COALESCE(a.application_number, c.candidate_number) AS application_number,
-//   a.rejection_reason,
-//   a.rejection_count,
-//   a.submitted_at,
-//   a.reviewed_at,
-//   COALESCE(CONCAT(r.first_name, ' ', r.last_name), '') AS reviewer_name,  -- << ชื่อผู้อนุมัติ
-//   c.candidate_number AS number
-// FROM applications a
-// JOIN users u                 ON a.user_id = u.user_id
-// LEFT JOIN users r            ON a.reviewed_by = r.user_id                 -- << join ผู้อนุมัติ
-// LEFT JOIN department d       ON u.department_id = d.department_id
-// LEFT JOIN year_levels y      ON u.year_id = y.year_id
-// LEFT JOIN education_levels l ON y.level_id = l.level_id
-// LEFT JOIN candidates c       ON c.application_id = a.application_id
-// WHERE a.election_id = ?
-// ORDER BY
-//   CASE WHEN c.candidate_number IS NULL THEN 1 ELSE 0 END,
-//   c.candidate_number ASC,
-//   a.application_id ASC;
-
-
-// `;
-
-//         // const rows = await db.query(sql, [electionId]);
-//         // const processed = rows.map((r) => ({
-//         //     candidate_id: r.candidate_id,
-//         //     student_id: r.student_id,
-//         //     full_name: r.full_name,
-//         //     image_url: r.image_url || '',
-//         //     policy: r.policy || '-',
-//         //     status: r.status,
-//         //     application_number: r.application_number || '-',
-//         //      : r.reviewer_name || '-',
-//         //     department_id: r.department_id || null,
-//         //     department_name: r.department_name || '-',
-//         //     year_id: r.year_id || null,
-//         //     year_name: r.year_name || '-',
-//         //     level_id: r.level_id || null,
-//         //     reject_reason: r.rejection_reason || null,
-//         //     submitted_at: r.submitted_at || null,
-//         //     reviewed_at: r.reviewed_at || null,
-//         // }));
-
-//         const rows = await db.query(sql, [electionId]);
-//         const processed = rows.map((r) => ({
-//             candidate_id: r.candidate_id,
-//             student_id: r.student_id,
-//             name: r.name,
-//             photo: r.photo || '',
-//             campaign_slogan: r.campaign_slogan || '-',
-//             application_status: r.application_status,
-//             application_number: r.application_number ?? '-',  // จะ fallback เป็น candidate_number ให้แล้ว
-//             department: r.department || '-',
-//             number: r.number ?? '-',
-//             year_name: r.year_name || '-',                    // ถ้าใช้ year_number เปลี่ยน key ตามที่ส่ง
-//             level_name: r.level_name || '-',
-//             reviewer_name: r.reviewer_name || '-',            // << ตอนนี้จะมีค่า
-//             reject_reason: r.rejection_reason || null,
-//             submitted_at: r.submitted_at || null,
-//             reviewed_at: r.reviewed_at || null,
-//         }));
-
-//         return res.json({ success: true, candidates: processed });
-//     } catch (err) {
-//         console.error('getCandidatesByElection error:', err);
-//         return res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดที่ server' });
-//     }
-// };
-
 exports.getCandidatesByElection = async (req, res) => {
     try {
         const electionId = req.params.id;
@@ -432,7 +278,7 @@ exports.getCandidatesByElection = async (req, res) => {
         a.campaign_slogan,
         a.photo,
         a.application_status,
-        COALESCE(a.application_number, c.candidate_number) AS application_number,
+        COALESCE(c.candidate_number) AS application_number,
         a.rejection_reason as rejection_reason,
         a.rejection_count,
         a.submitted_at,
@@ -613,3 +459,191 @@ exports.requestRevision = async (req, res) => {
         return res.status(500).json({ success: false });
     }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/** ------------------------------------------------------------------ */
+/** GET /api/applications/by-election/:id                                */
+/** ------------------------------------------------------------------ */
+// exports.getCandidatesByElection = async (req, res) => {
+//     try {
+//         const electionId = req.params.id;
+
+//         //     const sql = `
+//         //   SELECT
+//         //     a.application_id AS candidate_id,
+//         //     u.student_id,
+//         //     CONCAT(u.first_name, ' ', u.last_name) AS full_name,
+//         //     a.photo AS image_url,
+//         //     a.campaign_slogan AS policy,
+//         //     a.application_status AS status,
+//         //     a.application_number,
+//         //     a.reviewed_by,
+//         //     a.reviewed_at,
+//         //     a.submitted_at,
+//         //     a.rejection_reason,
+//         //     u.department_id,
+//         //     d.department_name,
+//         //     u.year_id,
+//         //     y.year_name,
+//         //     y.level_id,
+//         //     CONCAT(r.first_name, ' ', r.last_name) AS reviewer_name
+//         //   FROM applications a
+//         //   JOIN users u ON a.user_id = u.user_id
+//         //   LEFT JOIN users r ON a.reviewed_by = r.user_id
+//         //   LEFT JOIN department d ON u.department_id = d.department_id
+//         //   LEFT JOIN year_levels y ON u.year_id = y.year_id
+//         //   WHERE a.election_id = ?
+//         //   ORDER BY a.submitted_at DESC
+//         // `;
+
+//         const sql = `
+// SELECT
+//   a.application_id AS candidate_id,
+//   u.student_id,
+//   CONCAT(u.first_name, ' ', u.last_name) AS name,
+//   COALESCE(d.department_name, '') AS department,
+//   COALESCE(y.year_name, '')        AS year_name,      -- ถ้าอยากเป็นเลขให้เปลี่ยนเป็น y.year_number
+//   COALESCE(l.level_name, '')       AS level_name,
+//   a.campaign_slogan,
+//   a.photo,
+//   a.application_status,
+//   COALESCE(a.application_number, c.candidate_number) AS application_number,
+//   a.rejection_reason,
+//   a.rejection_count,
+//   a.submitted_at,
+//   a.reviewed_at,
+//   COALESCE(CONCAT(r.first_name, ' ', r.last_name), '') AS reviewer_name,  -- << ชื่อผู้อนุมัติ
+//   c.candidate_number AS number
+// FROM applications a
+// JOIN users u                 ON a.user_id = u.user_id
+// LEFT JOIN users r            ON a.reviewed_by = r.user_id                 -- << join ผู้อนุมัติ
+// LEFT JOIN department d       ON u.department_id = d.department_id
+// LEFT JOIN year_levels y      ON u.year_id = y.year_id
+// LEFT JOIN education_levels l ON y.level_id = l.level_id
+// LEFT JOIN candidates c       ON c.application_id = a.application_id
+// WHERE a.election_id = ?
+// ORDER BY
+//   CASE WHEN c.candidate_number IS NULL THEN 1 ELSE 0 END,
+//   c.candidate_number ASC,
+//   a.application_id ASC;
+
+
+// `;
+
+//         // const rows = await db.query(sql, [electionId]);
+//         // const processed = rows.map((r) => ({
+//         //     candidate_id: r.candidate_id,
+//         //     student_id: r.student_id,
+//         //     full_name: r.full_name,
+//         //     image_url: r.image_url || '',
+//         //     policy: r.policy || '-',
+//         //     status: r.status,
+//         //     application_number: r.application_number || '-',
+//         //      : r.reviewer_name || '-',
+//         //     department_id: r.department_id || null,
+//         //     department_name: r.department_name || '-',
+//         //     year_id: r.year_id || null,
+//         //     year_name: r.year_name || '-',
+//         //     level_id: r.level_id || null,
+//         //     reject_reason: r.rejection_reason || null,
+//         //     submitted_at: r.submitted_at || null,
+//         //     reviewed_at: r.reviewed_at || null,
+//         // }));
+
+//         const rows = await db.query(sql, [electionId]);
+//         const processed = rows.map((r) => ({
+//             candidate_id: r.candidate_id,
+//             student_id: r.student_id,
+//             name: r.name,
+//             photo: r.photo || '',
+//             campaign_slogan: r.campaign_slogan || '-',
+//             application_status: r.application_status,
+//             application_number: r.application_number ?? '-',  // จะ fallback เป็น candidate_number ให้แล้ว
+//             department: r.department || '-',
+//             number: r.number ?? '-',
+//             year_name: r.year_name || '-',                    // ถ้าใช้ year_number เปลี่ยน key ตามที่ส่ง
+//             level_name: r.level_name || '-',
+//             reviewer_name: r.reviewer_name || '-',            // << ตอนนี้จะมีค่า
+//             reject_reason: r.rejection_reason || null,
+//             submitted_at: r.submitted_at || null,
+//             reviewed_at: r.reviewed_at || null,
+//         }));
+
+//         return res.json({ success: true, candidates: processed });
+//     } catch (err) {
+//         console.error('getCandidatesByElection error:', err);
+//         return res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดที่ server' });
+//     }
+// };
+
+
+/** ------------------------------------------------------------------ */
+/** DELETE /api/candidates/:id (admin)                                   */
+/** ------------------------------------------------------------------ */
+// exports.deleteCandidate = async (req, res) => {
+//     try {
+//         const candidateId = req.params.id;
+//         await db.query(`DELETE FROM candidates WHERE candidate_id = ?`, [candidateId]);
+//         res.json({ success: true });
+//     } catch (err) {
+//         console.error('deleteCandidate error:', err);
+//         res.status(500).json({ message: 'Delete failed' });
+//     }
+// };
+/** DELETE /api/candidates/:id  (admin only) */
+// exports.deleteApplication = async (req, res) => {
+//     const conn = db.getConnection ? await db.getConnection() : db;
+//     try {
+//         const candidateId = req.params.id;
+//         if (conn.beginTransaction) await conn.beginTransaction();
+
+//         await conn.query(`DELETE FROM candidates WHERE application_id = ?`, [candidateId]);
+//         await conn.query(`DELETE FROM applications WHERE application_id = ?`, [candidateId]);
+
+
+//         if (conn.commit) await conn.commit();
+//         res.json({ success: true });
+//     } catch (err) {
+//         if (conn.rollback) try { await conn.rollback(); } catch { }
+//         console.error('deleteCandidate error:', err);
+//         res.status(500).json({ message: 'Delete failed' });
+//     } finally {
+//         if (conn.release) conn.release();
+//     }
+// };
+
+// controllers/xxxx.controller.js

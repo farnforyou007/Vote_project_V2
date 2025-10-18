@@ -30,6 +30,7 @@ export default function ResultDetail() {
                 ? `# ${r.candidate_number} ${r.candidate_name}`
                 : r.candidate_name
         );
+
         const votes = results.map(r => r.vote_count);
         return {
             labels,
@@ -309,7 +310,8 @@ export default function ResultDetail() {
                             title="สัดส่วนการใช้สิทธิ์"
                         >
                             <div className="h-[300px] flex items-center justify-center">
-                                <Doughnut data={donutData} options={{
+                                <Doughnut data={donutData} 
+                                options={{
                                     responsive: true,
                                     maintainAspectRatio: false,
                                     plugins: { legend: { position: 'bottom' } }

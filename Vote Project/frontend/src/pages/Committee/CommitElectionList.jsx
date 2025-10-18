@@ -173,7 +173,7 @@ export default function CommitteeElectionList() {
                                                                 : e.effective_status === "WAITING_VOTE"
                                                                     ? "bg-amber-500"
                                                                     : "bg-purple-500"}
-                      `}
+                        `}
                                         >
                                             {translateStatus(e.effective_status || e.auto_status)}
                                         </span>

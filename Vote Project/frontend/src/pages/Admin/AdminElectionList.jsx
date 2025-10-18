@@ -34,16 +34,6 @@ export default function AdminElectionList() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [electionToEdit, setElectionToEdit] = useState(null);
 
-    // useEffect(() => {
-    //     (async () => {
-    //         const meRes = await apiFetch("/api/users/me");
-    //         if (meRes?.success) {
-    //             setMe(meRes.user);
-    //             setRoles(meRes.user.roles || []);
-    //         }
-    //     })();
-    // }, []);
-
     const loadMe = async () => {
         const meRes = await apiFetch(`/api/users/me`);
         if (meRes?.success) {
@@ -158,7 +148,7 @@ export default function AdminElectionList() {
     return (
 
         <>
-            {/* <Header studentName={studentName} /> */}
+            
             <Header />
             <div className="p-6 bg-purple-100 min-h-screen">
                 <h1 className="text-xl font-bold mb-4">จัดการรายการเลือกตั้ง</h1>
@@ -204,7 +194,7 @@ export default function AdminElectionList() {
                                         {e.is_hidden ? (
                                             <span
                                                 className="ml-2 text-[11px] bg-gray-600 text-white px-2 py-0.5 rounded align-middle"
-                                            // className="bg-gr-500 text-white px-2 py-1 rounded  hover:bg-yellow-600"
+                                                title="รายการนี้ถูกซ่อนอยู่ จะไม่แสดงบนหน้ารวมเลือกตั้งสำหรับผู้ใช้ทั่วไป"
                                             >
                                                 ซ่อนอยู่
                                             </span>
@@ -217,18 +207,7 @@ export default function AdminElectionList() {
                                         {formatTime(e.start_date)} - {formatTime(e.end_date)}
                                     </td>
                                     <td className="p-2 text-center">
-                                        {/* <span
-                                            className={`px-2 py-1 rounded text-white ${e.computed_status === "registration"
-                                                ? "bg-violet-500"
-                                                : e.computed_status === "active"
-                                                    ? "bg-green-500"
-                                                    : e.computed_status === "closed"
-                                                        ? "bg-gray-500"
-                                                        : e.computed_status === "completed"
-                                                            ? "bg-slate-500"
-                                                            : "bg-purple-500"
-                                                }`}
-                                        > */}
+                                
                                         <span className={`px-2 py-1 rounded text-white text-xs 
                                             ${e.effective_status === "REGISTRATION_OPEN" ? "bg-violet-500" :
                                                 e.effective_status === "VOTING_OPEN" ? "bg-green-500" :
@@ -270,7 +249,7 @@ export default function AdminElectionList() {
                                                 title={e.is_hidden ? 'แสดงบนหน้ารวม' : 'ซ่อนจากหน้ารวม'}
                                             >
                                                 {e.is_hidden ? <FaEye className="inline" size={16} /> : <FaEyeSlash className="inline" size={16} />}
-                                                {/* {' '} {e.is_hidden ? 'เลิกซ่อน' : 'ซ่อน'} */}
+                                                
                                             </button>
                                         </div>
 
